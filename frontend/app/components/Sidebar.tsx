@@ -93,7 +93,7 @@ export default function Sidebar() {
       <div className="border-t border-steel/50 px-3 py-4 lg:px-4">
         {loggedIn ? (
           <button
-            onClick={() => router.push("/mine")}
+            onClick={() => router.push("/profile")}
             className="flex w-full items-center gap-3 rounded-card border border-steel bg-graphite px-3 py-2.5 text-left transition-colors hover:border-cyan/40"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan font-serif text-sm text-obsidian">
@@ -101,7 +101,7 @@ export default function Sidebar() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm text-cloud">{email}</span>
-              <span className="block font-mono text-[10px] text-fog">点击进入我的日报</span>
+              <span className="block font-mono text-[10px] text-fog">点击编辑我的画像</span>
             </span>
           </button>
         ) : (

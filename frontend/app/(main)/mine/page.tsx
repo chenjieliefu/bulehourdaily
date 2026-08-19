@@ -76,6 +76,9 @@ export default function MinePage() {
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-fog">My Daily</p>
           <h1 className="mt-3 font-serif text-2xl text-cloud">我的个性化日报</h1>
+          <Link href="/profile" className="mt-2 inline-block text-sm text-cyan hover:underline">
+            编辑我的画像 →
+          </Link>
         </div>
         <div className="mt-4 flex items-center gap-4">
           <span className="font-mono text-xs text-fog">剩余体验 {Math.max(0, 3 - reports.length)} 份</span>
