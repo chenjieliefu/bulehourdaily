@@ -83,7 +83,7 @@ export default function MinePage() {
           {subscription ? (
             <span className="font-mono text-xs text-cyan">订阅中 · ¥{subscription.monthly_price}/月</span>
           ) : (
-            <span className="font-mono text-xs text-fog">剩余体验 {Math.max(0, 3 - reports.length)} 份</span>
+            <span className="font-mono text-xs text-fog">未订阅 · 剩余体验 {Math.max(0, 3 - reports.length)} 份</span>
           )}
           <button
             onClick={onGenerate}
