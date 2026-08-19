@@ -5,6 +5,7 @@ from pathlib import Path
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
 from app.models import EventEvidence, HotEvent, Source, SourceItem
 from app.models.enums import CredibilityLabel, EventStatus
 from . import llm
@@ -16,7 +17,7 @@ _PROMPT = (Path(__file__).resolve().parent / "prompts" / "event_extraction.md").
 
 def select_candidate_items(db: Session, hours: int = 48, limit: int = 150) -> list[SourceItem]:
     """近 N 小时条目，按源限量（防止单一源占满），按时间取前 limit 条。"""
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = utcnow() - timedelta(hours=hours)
     selected: list[SourceItem] = []
     for source in db.query(Source).filter(Source.enabled.is_(True)).all():
         batch = (
@@ -71,7 +72,7 @@ def _mock_extract(items: list[SourceItem]) -> dict:
 def _freshness(latest: datetime | None) -> int:
     if latest is None:
         return 1
-    hours = (datetime.utcnow() - latest).total_seconds() / 3600
+    hours = (utcnow() - latest).total_seconds() / 3600
     if hours < 6:
         return 5
     if hours < 24:
@@ -139,7 +140,7 @@ def extract_events(db: Session) -> dict:
             sort_score=compute_sort_score(relevance, actionability, freshness, label),
             reason=(str(raw.get("reason") or "")[:1000] or None),
             status=EventStatus.candidate,
-            first_seen_at=latest_ts or datetime.utcnow(),
+            first_seen_at=latest_ts or utcnow(),
         )
         db.add(event)
         db.flush()

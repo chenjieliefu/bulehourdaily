@@ -5,6 +5,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.time import utcnow
 from .source import Source
 
 
@@ -23,7 +24,7 @@ class SourceItem(Base):
     url_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     collected_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utcnow, nullable=False
     )
     raw: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 

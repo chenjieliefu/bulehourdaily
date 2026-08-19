@@ -1,8 +1,8 @@
 """后台任务执行器：提交 + 轮询。任务状态持久化，可恢复查询。"""
 import threading
-from datetime import datetime
 
 from app.core.database import SessionLocal
+from app.core.time import utcnow
 from app.models import Job
 from app.models.enums import JobKind, JobStatus
 
@@ -14,7 +14,7 @@ def _run_job(job_id: int) -> None:
         if job is None:
             return
         job.status = JobStatus.running
-        job.started_at = datetime.utcnow()
+        job.started_at = utcnow()
         db.commit()
 
         if job.kind == JobKind.extract_events:
@@ -31,7 +31,7 @@ def _run_job(job_id: int) -> None:
             raise ValueError(f"未知任务类型: {job.kind}")
 
         job.status = JobStatus.success
-        job.finished_at = datetime.utcnow()
+        job.finished_at = utcnow()
         db.commit()
     except Exception as exc:  # noqa: BLE001 —— 记录失败，不崩溃
         db.rollback()
@@ -39,7 +39,7 @@ def _run_job(job_id: int) -> None:
         if job is not None:
             job.status = JobStatus.failed
             job.error_message = str(exc)[:2000]
-            job.finished_at = datetime.utcnow()
+            job.finished_at = utcnow()
             db.commit()
     finally:
         db.close()

@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, Enum, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import utcnow
 from .enums import JobKind, JobStatus
 
 
@@ -18,6 +19,6 @@ class Job(Base):
     )
     result_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

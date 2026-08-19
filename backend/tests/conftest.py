@@ -6,10 +6,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.core.database import Base
 from app.models import Source, SourceItem
 from app.models.enums import CredibilityLevel, SourceType
 from app.services.url_normalize import url_hash
+
+
+@pytest.fixture(autouse=True)
+def _force_mock_llm(monkeypatch):
+    """测试一律走 mock，不调用真实模型（真实冒烟另做）。"""
+    monkeypatch.setattr(settings, "model_api_key", "")
 
 
 @pytest.fixture()

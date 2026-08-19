@@ -9,6 +9,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
 from app.models import CollectionRun, Source, SourceItem
 from app.models.enums import CollectionStatus
 from app.schemas.collect import CollectRunSummary, SourceRunResult
@@ -17,7 +18,7 @@ from .url_normalize import url_hash
 
 
 def collect_source(db: Session, source: Source) -> SourceRunResult:
-    started = datetime.utcnow()
+    started = utcnow()
     run = CollectionRun(source_id=source.id, status=CollectionStatus.running, started_at=started)
     db.add(run)
     db.commit()
@@ -27,7 +28,7 @@ def collect_source(db: Session, source: Source) -> SourceRunResult:
         items = fetch_items(source.type, source.url)
     except Exception as exc:  # 单一源失败不阻断整体
         run.status = CollectionStatus.failed
-        run.finished_at = datetime.utcnow()
+        run.finished_at = utcnow()
         run.error_message = str(exc)[:2000]
         db.commit()
         return SourceRunResult(
@@ -59,7 +60,7 @@ def collect_source(db: Session, source: Source) -> SourceRunResult:
         new_count += 1
 
     run.status = CollectionStatus.success
-    run.finished_at = datetime.utcnow()
+    run.finished_at = utcnow()
     run.items_count = new_count
     db.commit()
 
@@ -72,7 +73,7 @@ def collect_source(db: Session, source: Source) -> SourceRunResult:
 
 
 def collect_all(db: Session) -> CollectRunSummary:
-    started = datetime.utcnow()
+    started = utcnow()
     sources = db.query(Source).filter(Source.enabled.is_(True)).all()
 
     results: list[SourceRunResult] = []
@@ -90,7 +91,7 @@ def collect_all(db: Session) -> CollectRunSummary:
 
     return CollectRunSummary(
         started_at=started,
-        finished_at=datetime.utcnow(),
+        finished_at=utcnow(),
         total_sources=len(sources),
         success=success,
         failed=failed,

@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.time import utcnow
 from .enums import CollectionStatus
 from .source import Source
 
@@ -16,7 +17,7 @@ class CollectionRun(Base):
     source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("source.id"), nullable=False, index=True
     )
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[CollectionStatus] = mapped_column(
         Enum(CollectionStatus, name="collection_status"),

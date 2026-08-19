@@ -1,9 +1,11 @@
 """通用日报接口。"""
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models import (
+    CollectionRun,
     DailyReport,
     EventEvidence,
     HotBrief,
@@ -74,9 +76,10 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    event_ids = [t.hot_event_id for t in topics]
+    event_ids = list({t.hot_event_id for t in topics} | {b.hot_event_id for b in briefs})
     events = {e.id: e for e in db.query(HotEvent).filter(HotEvent.id.in_(event_ids)).all()} if event_ids else {}
     evidence_map = _evidence_for_events(db, event_ids)
+    last_collect_at = db.query(func.max(CollectionRun.started_at)).scalar()
 
     topic_reads = [
         TopicRead(
@@ -92,6 +95,7 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
             order_index=t.order_index,
             hot_event_id=t.hot_event_id,
             credibility_label=events[t.hot_event_id].credibility_label if t.hot_event_id in events else None,
+            event_published_at=events[t.hot_event_id].first_seen_at if t.hot_event_id in events else None,
             evidence=evidence_map.get(t.hot_event_id, []),
         )
         for t in topics
@@ -102,6 +106,7 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
             summary=b.summary,
             order_index=b.order_index,
             hot_event_id=b.hot_event_id,
+            event_published_at=events[b.hot_event_id].first_seen_at if b.hot_event_id in events else None,
         )
         for b in briefs
     ]
@@ -109,6 +114,7 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
     base = ReportRead.model_validate(report)
     return ReportDetail(
         **base.model_dump(),
+        last_collect_at=last_collect_at,
         topics=topic_reads,
         briefs=brief_reads,
     )

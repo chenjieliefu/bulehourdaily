@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
+
 from app.models import (
     DailyReport,
     EventEvidence,
@@ -91,7 +93,7 @@ def generate_report(db: Session) -> dict:
         db.query(HotBrief).filter(HotBrief.report_id == report.id).delete()
 
     report.summary = str(data.get("summary") or "")[:1000]
-    report.updated_at = datetime.utcnow()
+    report.updated_at = utcnow()
 
     for idx, t in enumerate(topics_data, start=1):
         db.add(

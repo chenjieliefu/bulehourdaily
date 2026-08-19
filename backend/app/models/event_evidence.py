@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.time import utcnow
 from .hot_event import HotEvent
 from .source_item import SourceItem
 
@@ -22,7 +23,7 @@ class EventEvidence(Base):
     source_item_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("source_item.id"), nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     hot_event: Mapped[HotEvent] = relationship("HotEvent", backref="evidence")
     source_item: Mapped[SourceItem] = relationship("SourceItem")

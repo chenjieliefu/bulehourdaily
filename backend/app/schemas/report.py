@@ -20,6 +20,7 @@ class TopicRead(BaseModel):
     order_index: int
     hot_event_id: int
     credibility_label: CredibilityLabel | None = None
+    event_published_at: datetime | None = None
     evidence: list[EvidenceItem] = []
 
 
@@ -28,6 +29,7 @@ class BriefRead(BaseModel):
     summary: str
     order_index: int
     hot_event_id: int
+    event_published_at: datetime | None = None
 
 
 class ReportRead(BaseModel):
@@ -43,5 +45,6 @@ class ReportRead(BaseModel):
 
 
 class ReportDetail(ReportRead):
+    last_collect_at: datetime | None = None
     topics: list[TopicRead] = []
     briefs: list[BriefRead] = []

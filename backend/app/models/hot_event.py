@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, Enum, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import utcnow
 from .enums import CredibilityLabel, EventStatus
 
 
@@ -28,9 +29,9 @@ class HotEvent(Base):
         nullable=False,
     )
     first_seen_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utcnow, nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )

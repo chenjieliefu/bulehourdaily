@@ -1,5 +1,5 @@
 """采集器解析纯函数测试。"""
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.services.collectors import _entry_to_item, _parse_time
 
@@ -17,7 +17,7 @@ def test_entry_to_item_basic():
     assert item["url"] == "https://example.com/post"
     assert item["title"] == "Hello AI"
     assert item["author"] == "Alice"
-    assert item["published_at"] == datetime(2026, 8, 1, tzinfo=timezone.utc)
+    assert item["published_at"] == datetime(2026, 8, 1)
     assert item["raw"]["link"] == "https://example.com/post"
 
 

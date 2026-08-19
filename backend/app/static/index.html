@@ -69,7 +69,7 @@
     <section>
       <h2>热点事件（<span id="evCount">0</span>）</h2>
       <table>
-        <thead><tr><th>标题</th><th>可信度</th><th>相关性</th><th>行动性</th><th>排序分</th><th>证据数</th><th>理由</th></tr></thead>
+        <thead><tr><th>标题</th><th>事件时间</th><th>可信度</th><th>相关性</th><th>行动性</th><th>排序分</th><th>证据数</th><th>理由</th></tr></thead>
         <tbody id="evBody"></tbody>
       </table>
     </section>
@@ -133,11 +133,11 @@
       document.getElementById('evCount').textContent = evs.length;
       const labelName = { official: '官方确认', multi_source: '多方报道', early_signal: '早期信号' };
       document.getElementById('evBody').innerHTML = evs.map(e =>
-        `<tr><td>${esc(e.title)}</td>
+        `<tr><td>${esc(e.title)}</td><td class="muted">${fmt(e.first_seen_at)}</td>
         <td><span class="label ${e.credibility_label}">${labelName[e.credibility_label] || e.credibility_label}</span></td>
         <td>${e.relevance_score}</td><td>${e.actionability_score}</td><td>${e.sort_score}</td>
         <td>${e.evidence_count}</td><td class="muted">${esc(e.reason || '')}</td></tr>`).join('')
-        || '<tr><td colspan="7" class="muted">暂无事件，点「提取事件」</td></tr>';
+        || '<tr><td colspan="8" class="muted">暂无事件，点「提取事件」</td></tr>';
     }
     async function runExtract() {
       const btn = document.getElementById('extractBtn');
@@ -163,18 +163,21 @@
       const topicsHtml = r.topics.map((t, i) => `
         <div class="card topic">
           <h3>选题 ${i + 1}：${esc(t.title)} <span class="label ${t.credibility_label || ''}">${labelName[t.credibility_label] || ''}</span></h3>
+          <p><span class="k">事件时间：</span>${fmt(t.event_published_at)}</p>
           <p><span class="k">发生了什么：</span>${esc(t.what_happened)}</p>
           <p><span class="k">为什么现在关注：</span>${esc(t.why_now)}</p>
           <p><span class="k">切入角度：</span>${esc(t.angle)}</p>
           <p><span class="k">前三秒钩子：</span>${esc(t.hook)}</p>
           <p><span class="k">结构建议：</span>${esc(t.structure)}</p>
           <p><span class="k">画面建议：</span>${esc(t.visual)}</p>
-          <p><span class="k">时间窗口：</span>${esc(t.time_window)}</p>
-          <p><span class="k">证据：</span>${t.evidence.map(ev => `<a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc(ev.source_name)}</a>`).join('、') || '无'}</p>
+          <p><span class="k">建议发布时间窗口：</span>${esc(t.time_window)}</p>
+          <p><span class="k">证据：</span>${t.evidence.map(ev => `<a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc(ev.source_name)}（${fmt(ev.published_at)}）</a>`).join('、') || '无'}</p>
         </div>`).join('');
-      const briefsHtml = r.briefs.map(b => `<li>${esc(b.summary)}</li>`).join('') || '<li class="muted">（无速览）</li>';
+      const briefsHtml = r.briefs.map(b => `<li>${esc(b.summary)} <span class="muted">（${fmt(b.event_published_at)}）</span></li>`).join('') || '<li class="muted">（无速览）</li>';
       document.getElementById('reportContent').innerHTML =
-        `<h2>今日日报（${r.report_date}）</h2><p><b>一句话摘要：</b>${esc(r.summary || '')}</p>` +
+        `<h2>今日日报（${r.report_date}）</h2>` +
+        `<p><span class="k">生成时间：</span>${fmt(r.updated_at)}　　<span class="k">最近采集时间：</span>${fmt(r.last_collect_at)}</p>` +
+        `<p><b>一句话摘要：</b>${esc(r.summary || '')}</p>` +
         `<h3>选题建议</h3>${topicsHtml}<h3>热点速览</h3><ul>${briefsHtml}</ul>`;
     }
     async function runReport() {
@@ -203,6 +206,13 @@
 
     function esc(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function fmt(t) {
+      if (!t) return '—';
+      const s = String(t);
+      // 数据库存的 UTC 不带时区标记，补齐 Z 让浏览器按 UTC 转北京时间
+      const d = new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(s) ? s : s + 'Z');
+      return d.toLocaleString('zh-CN');
     }
 
     loadStatus(); loadItems();

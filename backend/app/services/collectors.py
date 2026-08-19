@@ -19,7 +19,7 @@ def _parse_time(struct: Any) -> datetime | None:
     if not struct:
         return None
     try:
-        return datetime.fromtimestamp(calendar.timegm(struct), tz=timezone.utc)
+        return datetime.fromtimestamp(calendar.timegm(struct), tz=timezone.utc).replace(tzinfo=None)
     except (TypeError, ValueError, OSError):
         return None
 

@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, DateTime, Enum, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import utcnow
 from .enums import CredibilityLevel, SourceType
 
 
@@ -24,7 +25,7 @@ class Source(Base):
         nullable=False,
     )
     max_items_per_day: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
