@@ -66,6 +66,8 @@ export type PersonalizedTopic = {
   credibility_label: CredibilityLabel | null;
   event_published_at: string | null;
   evidence: EvidenceItem[];
+  feedback_status: "want" | "not_interested" | "published" | null;
+  feedback_douyin_url: string | null;
 };
 
 export type PersonalizedReport = {
@@ -96,6 +98,35 @@ export type Job = {
   status: "pending" | "running" | "success" | "failed";
   result_ref: string | null;
   error_message: string | null;
+};
+
+export type Plan = {
+  id: number;
+  topic_id: number;
+  core_viewpoint: string;
+  hooks: string[];
+  structure: string;
+  visual: string;
+  titles: string[];
+  risks: string;
+  created_at: string;
+};
+
+export type Feedback = {
+  id: number;
+  topic_id: number;
+  status: "want" | "not_interested" | "published";
+  douyin_url: string | null;
+  updated_at: string;
+};
+
+export type Subscription = {
+  id: number;
+  price_type: "founding" | "standard";
+  monthly_price: number;
+  status: string;
+  started_at: string;
+  expires_at: string;
 };
 
 const BASE = "/api/v1";
@@ -160,4 +191,25 @@ export async function getPersonalizedReport(id: number): Promise<PersonalizedRep
 // ---- 任务 ----
 export async function getJob(id: number): Promise<Job> {
   return apiFetch<Job>(`/jobs/${id}`);
+}
+
+// ---- 创作方案 - 发布反馈 - 订阅 ----
+export async function generatePlan(topicId: number): Promise<{ job_id: number }> {
+  return apiFetch<{ job_id: number }>(`/topics/${topicId}/plan`, { method: "POST" });
+}
+export async function getPlan(topicId: number): Promise<Plan> {
+  return apiFetch<Plan>(`/topics/${topicId}/plan`);
+}
+export async function submitFeedback(
+  topicId: number,
+  status: "want" | "not_interested" | "published",
+  douyin_url?: string,
+): Promise<Feedback> {
+  return apiFetch<Feedback>(`/topics/${topicId}/feedback`, {
+    method: "PUT",
+    body: JSON.stringify({ status, douyin_url }),
+  });
+}
+export async function getMySubscription(): Promise<Subscription | null> {
+  return apiFetch<Subscription | null>("/subscriptions/me");
 }

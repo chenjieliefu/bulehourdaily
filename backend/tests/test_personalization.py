@@ -3,10 +3,17 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.models import CreatorProfile, InviteCode, PersonalizedReport, PersonalizedTopic
+from app.models import (
+    CreatorProfile,
+    InviteCode,
+    MailDelivery,
+    PersonalizedReport,
+    PersonalizedTopic,
+)
 from app.services.auth import register
 from app.services.event_extraction import extract_events
 from app.services.personalization import generate_personalized
+from app.services.subscriptions import create_subscription
 
 
 def _user(db):
@@ -87,3 +94,33 @@ def test_trial_limit_three_reports(db, source_factory, item_factory):
 
     with pytest.raises(ValueError, match="体验次数"):
         generate_personalized(db, user.id)
+
+
+def test_generate_creates_mail_delivery(db, source_factory, item_factory):
+    user = _user(db)
+    _profile(db, user)
+    src = source_factory()
+    for i in range(6):
+        item_factory(src, title=f"t{i}")
+    extract_events(db)
+
+    generate_personalized(db, user.id)
+    assert db.query(MailDelivery).count() == 1
+
+
+def test_active_subscription_bypasses_trial(db, source_factory, item_factory):
+    user = _user(db)
+    _profile(db, user)
+    src = source_factory()
+    for i in range(6):
+        item_factory(src, title=f"t{i}")
+    extract_events(db)
+
+    today = date.today()
+    for i in range(1, 4):  # 体验 3 份已用完
+        db.add(PersonalizedReport(user_id=user.id, report_date=today - timedelta(days=i)))
+    db.commit()
+
+    create_subscription(db, user.id)  # 开通订阅后不再受限
+    result = generate_personalized(db, user.id)
+    assert result["report_id"] is not None

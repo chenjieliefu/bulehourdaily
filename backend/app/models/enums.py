@@ -41,10 +41,33 @@ class JobKind(str, enum.Enum):
     extract_events = "extract_events"
     generate_report = "generate_report"
     personalized_report = "personalized_report"
+    generate_plan = "generate_plan"
 
 
 class JobStatus(str, enum.Enum):
     pending = "pending"
     running = "running"
     success = "success"
+    failed = "failed"
+
+
+class FeedbackStatus(str, enum.Enum):
+    want = "want"                      # 想做
+    not_interested = "not_interested"  # 不感兴趣
+    published = "published"            # 已发布
+
+
+class PriceType(str, enum.Enum):
+    founding = "founding"    # 创始价 ¥29
+    standard = "standard"    # 标准价 ¥49
+
+
+class SubscriptionStatus(str, enum.Enum):
+    active = "active"
+    expired = "expired"
+
+
+class MailStatus(str, enum.Enum):
+    pending = "pending"
+    sent = "sent"
     failed = "failed"

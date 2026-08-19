@@ -5,22 +5,20 @@ import { useCallback, useEffect, useState } from "react";
 import {
   generatePersonalized,
   getJob,
+  getMySubscription,
   getPersonalizedReport,
   listPersonalizedReports,
   type PersonalizedReport,
   type PersonalizedReportDetail,
+  type Subscription,
 } from "@/lib/api";
-import { fmtDate, fmtTime } from "@/lib/format";
-
-const LABEL: Record<string, string> = {
-  official: "官方确认",
-  multi_source: "多方报道",
-  early_signal: "早期信号",
-};
+import { fmtDate } from "@/lib/format";
+import PersonalizedTopicCard from "./PersonalizedTopicCard";
 
 export default function MinePage() {
   const [reports, setReports] = useState<PersonalizedReport[]>([]);
   const [detail, setDetail] = useState<PersonalizedReportDetail | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,6 +31,7 @@ export default function MinePage() {
       if (list.length > 0 && !detail) {
         setDetail(await getPersonalizedReport(list[0].id));
       }
+      setSubscription(await getMySubscription());
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -81,7 +80,11 @@ export default function MinePage() {
           </Link>
         </div>
         <div className="mt-4 flex items-center gap-4">
-          <span className="font-mono text-xs text-fog">剩余体验 {Math.max(0, 3 - reports.length)} 份</span>
+          {subscription ? (
+            <span className="font-mono text-xs text-cyan">订阅中 · ¥{subscription.monthly_price}/月</span>
+          ) : (
+            <span className="font-mono text-xs text-fog">剩余体验 {Math.max(0, 3 - reports.length)} 份</span>
+          )}
           <button
             onClick={onGenerate}
             disabled={busy}
@@ -138,55 +141,13 @@ export default function MinePage() {
 
               <div className="mt-6 space-y-4">
                 {detail.topics.map((t) => (
-                  <article key={t.id} className="rounded-card border border-steel bg-graphite p-6">
-                    <div className="flex items-center gap-3">
-                      <span className="font-serif text-2xl text-iris">{String(t.order_index).padStart(2, "0")}</span>
-                      {t.credibility_label && (
-                        <span className="font-mono text-xs text-cyan">{LABEL[t.credibility_label] || t.credibility_label}</span>
-                      )}
-                      <span className="font-mono text-xs text-fog">{fmtTime(t.event_published_at)}</span>
-                    </div>
-                    <h3 className="mt-3 font-serif text-lg text-cloud">{t.title}</h3>
-                    <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-                      <P label="发生了什么">{t.what_happened}</P>
-                      <P label="为什么现在关注">{t.why_now}</P>
-                      <P label="切入角度">{t.angle}</P>
-                      <P label="前三秒钩子" accent>{t.hook}</P>
-                      <P label="结构建议">{t.structure}</P>
-                      <P label="画面建议">{t.visual}</P>
-                    </div>
-                    <div className="mt-4 rounded-card border border-cyan/30 bg-cyan/10 p-3">
-                      <p className="font-mono text-xs text-cyan">{t.time_window}</p>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      {t.evidence.length > 0 && (
-                        <>
-                          <a href={t.evidence[0].url} target="_blank" rel="noopener noreferrer"
-                            className="rounded-full border border-steel px-2.5 py-0.5 text-xs text-silver hover:border-cyan hover:text-cyan">
-                            {t.evidence[0].source_name} ↗
-                          </a>
-                          {t.evidence.length > 1 && (
-                            <span className="font-mono text-xs text-fog">+{t.evidence.length - 1} 来源</span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </article>
+                  <PersonalizedTopicCard key={t.id} topic={t} />
                 ))}
               </div>
             </div>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function P({ label, children, accent = false }: { label: string; children: string; accent?: boolean }) {
-  return (
-    <div>
-      <p className="font-mono text-xs uppercase tracking-widest text-fog">{label}</p>
-      <p className={`mt-1 leading-relaxed ${accent ? "text-cyan" : "text-silver"}`}>{children}</p>
     </div>
   );
 }

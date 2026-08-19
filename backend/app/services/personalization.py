@@ -13,10 +13,12 @@ from app.models import (
     HotEvent,
     PersonalizedReport,
     PersonalizedTopic,
+    User,
 )
 from app.models.enums import EventStatus
-from . import llm
+from . import llm, mail
 from .report_generation import _deadline_str, _hours_ago
+from .subscriptions import has_active_subscription
 
 _BJ = ZoneInfo("Asia/Shanghai")
 _PROMPT = (Path(__file__).resolve().parent / "prompts" / "personalization.md").read_text(encoding="utf-8")
@@ -80,7 +82,7 @@ def generate_personalized(db: Session, user_id: int) -> dict:
         .filter(PersonalizedReport.user_id == user_id, PersonalizedReport.report_date == today)
         .first()
     )
-    if existing is None:
+    if existing is None and not has_active_subscription(db, user_id):
         total = db.query(PersonalizedReport).filter(PersonalizedReport.user_id == user_id).count()
         if total >= settings.trial_personalized_reports:
             raise ValueError("体验次数已用完（3 份），请订阅后继续")
@@ -147,4 +149,13 @@ def generate_personalized(db: Session, user_id: int) -> dict:
         )
 
     db.commit()
+
+    # 模拟发送个性化日报邮件
+    user = db.get(User, user_id)
+    created_topics = (
+        db.query(PersonalizedTopic).filter(PersonalizedTopic.report_id == report.id).all()
+    )
+    mail.send_personalized_mail(db, user, report, created_topics)
+    db.commit()
+
     return {"report_id": report.id, "topics": len(topics_data)}

@@ -35,6 +35,16 @@ def _run_job(job_id: int) -> None:
                 raise ValueError("缺少 user_id")
             result = generate_personalized(db, int(user_id))
             job.result_ref = f"personalized:{result['report_id']}"
+        elif job.kind == JobKind.generate_plan:
+            from .creation_plan import generate_plan
+
+            ctx = job.context or {}
+            user_id = ctx.get("user_id")
+            topic_id = ctx.get("topic_id")
+            if not user_id or not topic_id:
+                raise ValueError("缺少 user_id/topic_id")
+            result = generate_plan(db, int(user_id), int(topic_id))
+            job.result_ref = f"plan:{result['plan_id']}"
         else:
             raise ValueError(f"未知任务类型: {job.kind}")
 

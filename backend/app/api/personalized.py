@@ -9,6 +9,7 @@ from app.models import (
     PersonalizedReport,
     PersonalizedTopic,
     SourceItem,
+    TopicFeedback,
     User,
 )
 from app.models.enums import JobKind
@@ -77,6 +78,13 @@ def get_report(report_id: int, user: User = Depends(get_current_user), db: Sessi
     event_ids = [t.hot_event_id for t in topics]
     events = {e.id: e for e in db.query(HotEvent).filter(HotEvent.id.in_(event_ids)).all()} if event_ids else {}
     evidence_map = _evidence_for_events(db, event_ids)
+    topic_ids = [t.id for t in topics]
+    feedbacks = {
+        f.topic_id: f
+        for f in db.query(TopicFeedback).filter(
+            TopicFeedback.user_id == user.id, TopicFeedback.topic_id.in_(topic_ids)
+        ).all()
+    } if topic_ids else {}
 
     topic_reads = [
         PersonalizedTopicRead(
@@ -95,6 +103,8 @@ def get_report(report_id: int, user: User = Depends(get_current_user), db: Sessi
             credibility_label=events[t.hot_event_id].credibility_label if t.hot_event_id in events else None,
             event_published_at=events[t.hot_event_id].first_seen_at if t.hot_event_id in events else None,
             evidence=evidence_map.get(t.hot_event_id, []),
+            feedback_status=feedbacks[t.id].status if t.id in feedbacks else None,
+            feedback_douyin_url=feedbacks[t.id].douyin_url if t.id in feedbacks else None,
         )
         for t in topics
     ]

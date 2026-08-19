@@ -7,7 +7,21 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import auth, collect, events, jobs, personalized, profile, reports, source_items, sources, status
+from app.api import (
+    auth,
+    collect,
+    events,
+    feedback,
+    jobs,
+    personalized,
+    plans,
+    profile,
+    reports,
+    source_items,
+    sources,
+    status,
+    subscriptions,
+)
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.services.collection import collect_all
@@ -63,6 +77,9 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(profile.router, prefix="/api/v1")
 app.include_router(personalized.router, prefix="/api/v1")
+app.include_router(plans.router, prefix="/api/v1")
+app.include_router(feedback.router, prefix="/api/v1")
+app.include_router(subscriptions.router, prefix="/api/v1")
 
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 

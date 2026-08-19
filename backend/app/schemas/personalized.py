@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.enums import CredibilityLabel
+from app.models.enums import CredibilityLabel, FeedbackStatus
 from .event import EvidenceItem
 
 
@@ -23,6 +23,8 @@ class PersonalizedTopicRead(BaseModel):
     credibility_label: CredibilityLabel | None = None
     event_published_at: datetime | None = None
     evidence: list[EvidenceItem] = []
+    feedback_status: FeedbackStatus | None = None
+    feedback_douyin_url: str | None = None
 
 
 class PersonalizedReportRead(BaseModel):
