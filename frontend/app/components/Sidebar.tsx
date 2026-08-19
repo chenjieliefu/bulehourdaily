@@ -5,10 +5,23 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearAuth, getUser, isLoggedIn } from "@/lib/auth";
 
-const NAV = [
-  { href: "/", label: "今日日报" },
-  { href: "/archive", label: "最近 7 天" },
-  { href: "/mine", label: "我的日报" },
+type NavItem = { href?: string; label: string; soon?: boolean };
+
+// 上组：内容
+const TOP_GROUP: NavItem[] = [
+  { href: "/mine", label: "订阅日报" },
+  { href: "/", label: "公开日报" },
+  { href: undefined, label: "邮箱日报", soon: true },
+  { href: "/archive", label: "往期归档" },
+  { href: undefined, label: "我的收藏", soon: true },
+];
+
+// 下组：账户与商业（展示顺序从上到下）
+const BOTTOM_GROUP: NavItem[] = [
+  { href: undefined, label: "升级会员", soon: true },
+  { href: undefined, label: "兑换会员", soon: true },
+  { href: undefined, label: "邀请送会员", soon: true },
+  { href: undefined, label: "意见反馈", soon: true },
   { href: "/landing", label: "产品介绍" },
 ];
 
@@ -25,8 +38,8 @@ export default function Sidebar() {
     setEmail(getUser()?.email ?? null);
   }, [pathname]);
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href?: string) =>
+    href ? (href === "/" ? pathname === "/" : pathname.startsWith(href)) : false;
 
   function logout() {
     clearAuth();
@@ -35,49 +48,80 @@ export default function Sidebar() {
     router.push("/");
   }
 
+  const itemCls = (item: NavItem) =>
+    item.soon
+      ? "cursor-not-allowed whitespace-nowrap rounded-md px-3 py-2 text-sm text-fog/50"
+      : `whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors ${
+          isActive(item.href) ? "bg-cyan/10 text-cyan" : "text-ash hover:bg-steel/50 hover:text-cloud"
+        }`;
+
   return (
     <aside className="flex flex-col border-b border-steel bg-abyss/60 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:border-b-0 lg:border-r">
+      {/* Logo */}
       <div className="px-6 py-6">
-        <Link href="/" className="font-serif text-xl text-cloud">微蓝日报</Link>
+        <Link href="/" className="block font-serif text-xl text-cloud">微蓝日报</Link>
         <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-cyan">Blue Hour Daily</p>
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:gap-0 lg:pb-0">
-        {NAV.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors ${
-              isActive(item.href) ? "bg-cyan/10 text-cyan" : "text-ash hover:bg-steel/50 hover:text-cloud"
-            }`}
-          >
-            {item.label}
-          </Link>
+      {/* 上组：内容 */}
+      <nav className="flex gap-1 overflow-x-auto px-3 pb-2 lg:flex-col lg:gap-0 lg:pb-0">
+        {TOP_GROUP.map((item) => (
+          item.href ? (
+            <Link key={item.label} href={item.href} className={itemCls(item)}>
+              {item.label}
+            </Link>
+          ) : (
+            <span key={item.label} className={itemCls(item)} title="即将上线">{item.label}</span>
+          )
         ))}
       </nav>
 
-      <div className="mt-auto px-3 pb-6 lg:px-6">
+      {/* 下组：账户与商业 */}
+      <nav className="mt-auto flex gap-1 overflow-x-auto border-t border-steel/50 px-3 py-3 lg:flex-col lg:gap-0 lg:border-t-0 lg:py-2">
+        {BOTTOM_GROUP.map((item) => (
+          item.href ? (
+            <Link key={item.label} href={item.href} className={itemCls(item)}>
+              {item.label}
+            </Link>
+          ) : (
+            <span key={item.label} className={itemCls(item)} title="即将上线">{item.label}</span>
+          )
+        ))}
+      </nav>
+
+      {/* 底部：头像 + 账号 */}
+      <div className="border-t border-steel/50 px-3 py-4 lg:px-4">
         {loggedIn ? (
-          <div className="flex flex-col gap-2">
-            <span className="truncate font-mono text-xs text-fog">{email}</span>
-            <button
-              onClick={logout}
-              className="rounded-md border border-steel px-3 py-1.5 text-sm text-silver transition-colors hover:border-red-500/50 hover:text-red-400"
-            >
-              退出登录
-            </button>
-          </div>
+          <button
+            onClick={() => router.push("/mine")}
+            className="flex w-full items-center gap-3 rounded-card border border-steel bg-graphite px-3 py-2.5 text-left transition-colors hover:border-cyan/40"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan font-serif text-sm text-obsidian">
+              {(email?.[0] ?? "微").toUpperCase()}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-cloud">{email}</span>
+              <span className="block font-mono text-[10px] text-fog">点击进入我的日报</span>
+            </span>
+          </button>
         ) : (
           <Link
             href="/login"
-            className="block rounded-md border border-cyan/40 px-3 py-1.5 text-center text-sm text-cyan transition-colors hover:bg-cyan/10"
+            className="flex w-full items-center gap-3 rounded-card border border-steel bg-graphite px-3 py-2.5 transition-colors hover:border-cyan/40"
           >
-            登录 / 注册
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-steel text-sm text-silver">?</span>
+            <span className="text-sm text-ash">登录 / 注册</span>
           </Link>
         )}
-        <p className="mt-4 hidden font-mono text-[10px] uppercase tracking-widest text-fog lg:block">
-          在世界醒来之前，看见下一刻。
-        </p>
+
+        {loggedIn && (
+          <button
+            onClick={logout}
+            className="mt-2 w-full rounded-md px-3 py-1.5 text-left text-xs text-fog transition-colors hover:text-red-400"
+          >
+            退出登录
+          </button>
+        )}
       </div>
     </aside>
   );
