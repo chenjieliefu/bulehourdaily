@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>微蓝日报 · 阶段一验收界面</title>
+  <style>
+    body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 24px; color: #1f2937; background: #f8fafc; }
+    h1 { font-size: 20px; }
+    .bar { display: flex; gap: 24px; flex-wrap: wrap; background: #fff; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb; }
+    .bar div { font-size: 14px; }
+    button { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    th { background: #f1f5f9; }
+    .failed { background: #fee2e2; color: #991b1b; }
+    .muted { color: #6b7280; }
+    section { margin-top: 24px; }
+    h2 { font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>微蓝日报 · 阶段一验收界面</h1>
+
+  <div class="bar" id="statusBar">加载中…</div>
+  <button id="collectBtn" onclick="runCollect()">立即采集</button>
+
+  <section>
+    <h2>信息源（<span id="srcCount">0</span>）</h2>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>名称</th><th>类型</th><th>可信级别</th><th>启用</th><th>每日上限</th><th>最近状态</th></tr>
+      </thead>
+      <tbody id="srcBody"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>来源条目（最近 50 条）</h2>
+    <table>
+      <thead>
+        <tr><th>时间</th><th>标题</th><th>作者</th><th>链接</th></tr>
+      </thead>
+      <tbody id="itemBody"></tbody>
+    </table>
+  </section>
+
+  <script>
+    const api = (p) => fetch('/api/v1' + p).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+
+    async function loadStatus() {
+      const s = await api('/status');
+      const last = s.last_collect_at ? new Date(s.last_collect_at).toLocaleString('zh-CN') : '（从未采集）';
+      document.getElementById('statusBar').innerHTML =
+        `<div>最近采集：<b>${last}</b></div>` +
+        `<div>信息源：${s.total_sources}（启用 ${s.enabled_sources}）</div>` +
+        `<div>来源条目：${s.total_items}</div>`;
+      renderSources(s.sources);
+    }
+
+    function renderSources(list) {
+      const typeName = { rss: 'RSS/博客', github_releases: 'GitHub 更新', x: 'X（占位）' };
+      document.getElementById('srcCount').textContent = list.length;
+      document.getElementById('srcBody').innerHTML = list.map(s => {
+        const lastText = s.last_status === 'failed'
+          ? `<span class="failed">失败</span>`
+          : (s.last_success_at ? new Date(s.last_success_at).toLocaleString('zh-CN') : '未采集');
+        return `<tr class="${s.last_status === 'failed' ? 'failed' : ''}">
+          <td>${s.source_id}</td><td>${escapeHtml(s.source_name)}</td>
+          <td>${typeName[s.type] || s.type}</td><td>${s.credibility_level || ''}</td>
+          <td>${s.enabled ? '是' : '否'}</td><td>${s.max_items_per_day || ''}</td><td>${lastText}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function loadItems() {
+      const items = await api('/source-items?limit=50');
+      document.getElementById('itemBody').innerHTML = items.map(it =>
+        `<tr>
+          <td class="muted">${it.collected_at ? new Date(it.collected_at).toLocaleString('zh-CN') : ''}</td>
+          <td>${escapeHtml(it.title)}</td>
+          <td>${escapeHtml(it.author || '')}</td>
+          <td><a href="${escapeHtml(it.url)}" target="_blank" rel="noopener">打开</a></td>
+        </tr>`).join('') || '<tr><td colspan="4" class="muted">暂无条目，点「立即采集」</td></tr>';
+    }
+
+    async function runCollect() {
+      const btn = document.getElementById('collectBtn');
+      btn.disabled = true; btn.textContent = '采集中…';
+      try {
+        const res = await fetch('/api/v1/collect/run', { method: 'POST' });
+        if (!res.ok) throw new Error(res.status);
+        const summary = await res.json();
+        alert(`采集完成：成功 ${summary.success} 个源，失败 ${summary.failed} 个源，新增条目 ${summary.new_items} 条。`);
+      } catch (e) {
+        alert('采集出错：' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = '立即采集';
+      }
+      await loadStatus(); await loadItems();
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    loadStatus(); loadItems();
+  </script>
+</body>
+</html>

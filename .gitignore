@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.db
+*.sqlite3
+
+# 密钥与本地配置
+.env
+
+# Node / 前端
+node_modules/
+.next/
+out/
+
+# 本地数据与资产
+data/
+
+# 日志
+*.log
+
+# macOS
+.DS_Store
