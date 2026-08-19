@@ -68,18 +68,18 @@ export default function ReportView({ report }: { report: Report }) {
                   <span className="shrink-0 font-mono text-xs text-fog">{fmtTime(b.event_published_at)}</span>
                 </div>
                 {b.evidence.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2 pl-7">
-                    {b.evidence.map((ev) => (
-                      <a
-                        key={ev.source_item_id}
-                        href={ev.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-full border border-steel px-2.5 py-0.5 text-xs text-silver transition-colors hover:border-cyan hover:text-cyan"
-                      >
-                        {ev.source_name} ↗
-                      </a>
-                    ))}
+                  <div className="mt-2 flex items-center gap-2 pl-7">
+                    <a
+                      href={b.evidence[0].url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-steel px-2.5 py-0.5 text-xs text-silver transition-colors hover:border-cyan hover:text-cyan"
+                    >
+                      {b.evidence[0].source_name} ↗
+                    </a>
+                    {b.evidence.length > 1 && (
+                      <span className="font-mono text-xs text-fog">+{b.evidence.length - 1} 来源</span>
+                    )}
                   </div>
                 )}
               </li>
