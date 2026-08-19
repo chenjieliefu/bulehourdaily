@@ -170,7 +170,7 @@
           <p><span class="k">前三秒钩子：</span>${esc(t.hook)}</p>
           <p><span class="k">结构建议：</span>${esc(t.structure)}</p>
           <p><span class="k">画面建议：</span>${esc(t.visual)}</p>
-          <p><span class="k">建议发布时间窗口：</span>${esc(t.time_window)}</p>
+          <p><span class="k">建议发布时机：</span>${esc(t.time_window)}</p>
           <p><span class="k">证据：</span>${t.evidence.map(ev => `<a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc(ev.source_name)}（${fmt(ev.published_at)}）</a>`).join('、') || '无'}</p>
         </div>`).join('');
       const briefsHtml = r.briefs.map(b => `<li>${esc(b.summary)} <span class="muted">（${fmt(b.event_published_at)}）</span></li>`).join('') || '<li class="muted">（无速览）</li>';
