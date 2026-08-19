@@ -27,6 +27,21 @@ def test_select_candidate_items_respects_source_limit(db, source_factory, item_f
     assert len(select_candidate_items(db)) == 2
 
 
+def test_reextract_does_not_duplicate_evidence(db, source_factory, item_factory):
+    src = source_factory()
+    for i in range(4):
+        item_factory(src, title=f"t{i}")
+
+    first = extract_events(db)
+    assert first["events_created"] == 2
+
+    # 再次提取：条目已归属 → 0 新增、不报错、证据不重复
+    second = extract_events(db)
+    assert second["events_created"] == 0
+    assert db.query(EventEvidence).count() == 4
+    assert db.query(HotEvent).count() == 2
+
+
 def test_extract_skips_hallucinated_evidence_ids(db, source_factory, item_factory):
     src = source_factory()
     item_factory(src, title="real")

@@ -104,13 +104,20 @@ def extract_events(db: Session) -> dict:
 
     valid_ids = {it.id for it in items}
     items_by_id = {it.id: it for it in items}
+    # 已归属事件的条目跳过（避免重复证据违反唯一约束）
+    assigned_ids = {
+        sid for (sid,) in db.query(EventEvidence.source_item_id).all()
+    }
 
     created = 0
     for raw in data.get("events", []):
         evidence_ids = [
             int(x) for x in raw.get("evidence_item_ids", []) if str(x).isdigit()
         ]
-        evidence_ids = [x for x in dict.fromkeys(evidence_ids) if x in valid_ids]
+        evidence_ids = [
+            x for x in dict.fromkeys(evidence_ids)
+            if x in valid_ids and x not in assigned_ids
+        ]
         if not evidence_ids:
             continue
 
