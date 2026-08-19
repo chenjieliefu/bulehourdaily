@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     model_timeout_seconds: int = 120
     model_max_retries: int = 2
 
+    # 选题与发布时机规则（临时值，待冻结）
+    topic_fresh_hours: int = 24        # 选题新鲜门槛
+    topic_fresh_relax_hours: int = 48  # 不足 3 个时的放宽门槛
+    hot_window_hours: int = 48         # 热度窗口：建议截止时间 = 事件时间 + 此值
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

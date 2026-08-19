@@ -1,12 +1,17 @@
-"""通用日报生成编排：已排序事件 → 通用日报（选题 + 速览）。"""
-from datetime import datetime
+"""通用日报生成编排。
+
+选题选择是确定性的：只选「事件时间距今 ≤ 新鲜门槛」的事件，不足放宽，宁缺毋滥。
+建议发布时机 = 事件时间 + 热度窗口，转成绝对时间展示。
+LLM 只负责「写内容」，不负责「选哪些事件」。
+"""
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.time import utcnow
-
 from app.models import (
     DailyReport,
     EventEvidence,
@@ -21,24 +26,48 @@ _BJ = ZoneInfo("Asia/Shanghai")
 _PROMPT = (Path(__file__).resolve().parent / "prompts" / "report_generation.md").read_text(encoding="utf-8")
 
 
-def _build_events_prompt(db: Session, events: list[HotEvent]) -> str:
+def _hours_ago(dt: datetime | None, now: datetime) -> float:
+    if dt is None:
+        return 999.0
+    return (now - dt).total_seconds() / 3600
+
+
+def _deadline_str(first_seen_at: datetime) -> str:
+    """事件时间 + 热度窗口 → 北京时间的绝对截止时间字符串。"""
+    aware_utc = first_seen_at.replace(tzinfo=timezone.utc)
+    bj = aware_utc.astimezone(_BJ) + timedelta(hours=settings.hot_window_hours)
+    return f"{bj.month}月{bj.day}日 {bj.hour:02d}:{bj.minute:02d}"
+
+
+def _event_lines(db: Session, events: list[HotEvent]) -> list[str]:
     ev_ids = [e.id for e in events]
     links: dict[int, list[str]] = {}
-    for ev in db.query(EventEvidence).filter(EventEvidence.hot_event_id.in_(ev_ids)).all():
-        links.setdefault(ev.hot_event_id, []).append(ev.source_item.url)
+    if ev_ids:
+        for ev in db.query(EventEvidence).filter(EventEvidence.hot_event_id.in_(ev_ids)).all():
+            links.setdefault(ev.hot_event_id, []).append(ev.source_item.url)
 
     lines = []
     for e in events:
+        ts = e.first_seen_at.strftime("%Y-%m-%d %H:%M") if e.first_seen_at else "未知"
         link_str = " | ".join(links.get(e.id, [])[:3])
         lines.append(
-            f"id={e.id} | 可信度={e.credibility_label.value} | 标题={e.title} | 摘要={e.summary} | 证据链接={link_str}"
+            f"id={e.id} | 事件时间={ts} | 可信度={e.credibility_label.value} | "
+            f"标题={e.title} | 摘要={e.summary} | 证据={link_str}"
         )
-    return "\n".join(lines)
+    return lines
 
 
-def _mock_report(events: list[HotEvent]) -> dict:
+def _build_prompt(db: Session, topic_events: list[HotEvent], brief_events: list[HotEvent]) -> str:
+    parts = ["## 选题事件（写完整选题建议）"]
+    parts.extend(_event_lines(db, topic_events))
+    parts.append("## 速览事件（只写一句话摘要）")
+    parts.extend(_event_lines(db, brief_events))
+    return "\n".join(parts)
+
+
+def _mock_report(topic_events: list[HotEvent], brief_events: list[HotEvent]) -> dict:
     topics = []
-    for e in events[:3]:
+    for e in topic_events:
         topics.append(
             {
                 "event_id": e.id,
@@ -49,10 +78,10 @@ def _mock_report(events: list[HotEvent]) -> dict:
                 "hook": "[模拟] 前三秒钩子",
                 "structure": "[模拟] 60-90 秒结构",
                 "visual": "[模拟] 画面/演示建议",
-                "time_window": "[模拟] 24 小时内",
+                "publish_reason": "趁热度最高",
             }
         )
-    briefs = [{"event_id": e.id, "summary": e.summary[:200]} for e in events[3:8]]
+    briefs = [{"event_id": e.id, "summary": e.summary[:200]} for e in brief_events]
     return {
         "summary": "[模拟] 今日海外 AI 动态一句话摘要（接入真实 Key 后由模型生成）",
         "topics": topics,
@@ -65,21 +94,31 @@ def generate_report(db: Session) -> dict:
         db.query(HotEvent)
         .filter(HotEvent.status != EventStatus.archived)
         .order_by(HotEvent.sort_score.desc())
-        .limit(10)
+        .limit(15)
         .all()
     )
     if not events:
         raise ValueError("没有候选热点事件，请先执行「提取事件」")
 
-    user_prompt = _build_events_prompt(db, events)
+    now = utcnow()
+    fresh = [e for e in events if _hours_ago(e.first_seen_at, now) <= settings.topic_fresh_hours]
+    if len(fresh) < 3:
+        fresh = [
+            e for e in events
+            if _hours_ago(e.first_seen_at, now) <= settings.topic_fresh_relax_hours
+        ]
+
+    topic_events = fresh[:3]
+    topic_ids = {e.id for e in topic_events}
+    brief_events = [e for e in events if e.id not in topic_ids][:7]
+
+    user_prompt = _build_prompt(db, topic_events, brief_events)
     if llm.is_available():
         data = llm.complete_json(_PROMPT, user_prompt)
     else:
-        data = _mock_report(events)
+        data = _mock_report(topic_events, brief_events)
 
-    event_ids = {e.id for e in events}
-    topics_data = [t for t in data.get("topics", []) if t.get("event_id") in event_ids][:3]
-    briefs_data = [b for b in data.get("briefs", []) if b.get("event_id") in event_ids][:7]
+    topics_by_event = {t.get("event_id"): t for t in data.get("topics", [])}
 
     today = datetime.now(_BJ).date()
     report = db.query(DailyReport).filter(DailyReport.report_date == today).first()
@@ -88,30 +127,36 @@ def generate_report(db: Session) -> dict:
         db.add(report)
         db.flush()
     else:
-        # 同一天重新生成：清除旧选题与速览，再写入
         db.query(TopicRecommendation).filter(TopicRecommendation.report_id == report.id).delete()
         db.query(HotBrief).filter(HotBrief.report_id == report.id).delete()
 
     report.summary = str(data.get("summary") or "")[:1000]
     report.updated_at = utcnow()
 
-    for idx, t in enumerate(topics_data, start=1):
+    for idx, event in enumerate(topic_events, start=1):
+        t = topics_by_event.get(event.id, {})
+        reason = str(t.get("publish_reason") or "趁热度最高").strip()
+        time_window = f"建议 {_deadline_str(event.first_seen_at)} 前发布，{reason}"
         db.add(
             TopicRecommendation(
                 report_id=report.id,
-                hot_event_id=t["event_id"],
-                title=str(t.get("title") or "")[:300] or "未命名选题",
-                what_happened=str(t.get("what_happened") or ""),
+                hot_event_id=event.id,
+                title=str(t.get("title") or "")[:300] or event.title[:300],
+                what_happened=str(t.get("what_happened") or "") or event.summary[:2000],
                 why_now=str(t.get("why_now") or ""),
                 angle=str(t.get("angle") or ""),
                 hook=str(t.get("hook") or ""),
                 structure=str(t.get("structure") or ""),
                 visual=str(t.get("visual") or ""),
-                time_window=str(t.get("time_window") or ""),
+                time_window=time_window,
                 order_index=idx,
             )
         )
-    for idx, b in enumerate(briefs_data, start=1):
+
+    for idx, b in enumerate(
+        [b for b in data.get("briefs", []) if b.get("event_id") in {e.id for e in brief_events}][:7],
+        start=1,
+    ):
         db.add(
             HotBrief(
                 report_id=report.id,
@@ -121,13 +166,16 @@ def generate_report(db: Session) -> dict:
             )
         )
 
-    topic_event_ids = {t["event_id"] for t in topics_data}
-    brief_event_ids = {b["event_id"] for b in briefs_data}
-    for e in events:
-        if e.id in topic_event_ids:
-            e.status = EventStatus.selected
-        elif e.id in brief_event_ids:
-            e.status = EventStatus.brief
+    for e in topic_events:
+        e.status = EventStatus.selected
+    for e in brief_events:
+        e.status = EventStatus.brief
 
     db.commit()
-    return {"report_id": report.id, "topics": len(topics_data), "briefs": len(briefs_data)}
+    return {
+        "report_id": report.id,
+        "topics": len(topic_events),
+        "briefs": len(
+            [b for b in data.get("briefs", []) if b.get("event_id") in {e.id for e in brief_events}][:7]
+        ),
+    }
