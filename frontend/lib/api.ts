@@ -32,6 +32,7 @@ export type Brief = {
   order_index: number;
   hot_event_id: number;
   event_published_at: string | null;
+  evidence: EvidenceItem[];
 };
 
 export type Report = {

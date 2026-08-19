@@ -107,6 +107,7 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
             order_index=b.order_index,
             hot_event_id=b.hot_event_id,
             event_published_at=events[b.hot_event_id].first_seen_at if b.hot_event_id in events else None,
+            evidence=evidence_map.get(b.hot_event_id, []),
         )
         for b in briefs
     ]

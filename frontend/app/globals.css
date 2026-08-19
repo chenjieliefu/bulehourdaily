@@ -24,8 +24,8 @@
 }
 
 @theme inline {
-  --font-serif: var(--font-dm-serif);
-  --font-mono: var(--font-roboto-mono);
+  --font-serif: var(--font-dm-serif), "Songti SC", "Noto Serif SC", "STSong", serif;
+  --font-mono: var(--font-roboto-mono), "SF Mono", ui-monospace, monospace;
 }
 
 :root {
@@ -46,6 +46,24 @@ body {
 
 .sky-gradient {
   background: var(--sky-gradient);
+}
+
+/* 网格线：参考页「grid lines drawn on darkness」*/
+.grid-lines {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+/* 地平线微光：黎明前地平线上的第一缕蓝光 */
+.horizon-glow {
+  background: linear-gradient(
+    to top,
+    rgba(0, 179, 221, 0.28),
+    rgba(144, 184, 240, 0.10) 35%,
+    transparent 70%
+  );
 }
 
 .glass {

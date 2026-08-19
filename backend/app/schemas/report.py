@@ -30,6 +30,7 @@ class BriefRead(BaseModel):
     order_index: int
     hot_event_id: int
     event_published_at: datetime | None = None
+    evidence: list[EvidenceItem] = []
 
 
 class ReportRead(BaseModel):
