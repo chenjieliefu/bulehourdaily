@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* 微蓝日报 设计 token（来源：Refero「Origin Financial」暗色系统） */
+@theme {
+  /* 品牌色 */
+  --color-obsidian: #0f1011;   /* 页面画布 */
+  --color-abyss: #090a0b;      /* 更深一层 */
+  --color-graphite: #2e2e2e;   /* 卡片表面 */
+  --color-steel: #3f4041;      /* hover/按压 */
+  --color-silver: #cacaca;     /* 浅色表面 */
+  --color-fog: #6a6b6b;        /* 弱化文字 */
+  --color-ash: #9f9fa0;        /* 正文 */
+  --color-cloud: #f5f5f7;      /* 柔和标题白 */
+  --color-iris: #847dff;       /* 主紫 */
+  --color-cyan: #00b3dd;       /* 青蓝 */
+  --color-pale-iris: #d1c9ff;  /* 浅紫 */
+  --color-deep-iris: #4b49aa;  /* 深紫 */
+  --color-periwinkle: #90b8f0; /* 浅蓝 */
+  --color-orchid: #dd90d8;     /* 粉 */
+
+  /* 圆角 */
+  --radius-card: 16px;
+  --radius-feature: 30px;
+}
+
+@theme inline {
+  --font-serif: var(--font-dm-serif);
+  --font-mono: var(--font-roboto-mono);
+}
+
+:root {
+  --sky-gradient: linear-gradient(
+    rgb(15, 16, 17),
+    rgb(19, 29, 39) 18%,
+    rgb(26, 71, 136) 37%,
+    rgb(64, 138, 193) 69%,
+    rgb(64, 138, 193) 102%
+  );
+}
+
+body {
+  background: var(--color-obsidian);
+  color: var(--color-ash);
+  font-family: "PingFang SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+}
+
+.sky-gradient {
+  background: var(--sky-gradient);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(24px);
+}
