@@ -155,13 +155,18 @@ export default function MinePage() {
                     <div className="mt-4 rounded-card border border-cyan/30 bg-cyan/10 p-3">
                       <p className="font-mono text-xs text-cyan">{t.time_window}</p>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {t.evidence.map((ev) => (
-                        <a key={ev.source_item_id} href={ev.url} target="_blank" rel="noopener noreferrer"
-                          className="rounded-full border border-steel px-2.5 py-0.5 text-xs text-silver hover:border-cyan hover:text-cyan">
-                          {ev.source_name} ↗
-                        </a>
-                      ))}
+                    <div className="mt-3 flex items-center gap-2">
+                      {t.evidence.length > 0 && (
+                        <>
+                          <a href={t.evidence[0].url} target="_blank" rel="noopener noreferrer"
+                            className="rounded-full border border-steel px-2.5 py-0.5 text-xs text-silver hover:border-cyan hover:text-cyan">
+                            {t.evidence[0].source_name} ↗
+                          </a>
+                          {t.evidence.length > 1 && (
+                            <span className="font-mono text-xs text-fog">+{t.evidence.length - 1} 来源</span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </article>
                 ))}

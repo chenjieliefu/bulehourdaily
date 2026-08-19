@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,11 +54,14 @@ export default function ProfilePage() {
     e.preventDefault();
     setError(null);
     setSaved(false);
+    setSaving(true);
     try {
       await saveProfile(form as Profile);
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -88,14 +92,19 @@ export default function ProfilePage() {
           ))}
 
           {error && <p className="text-sm text-red-400">{error}</p>}
-          {saved && <p className="text-sm text-emerald-400">已保存 ✓</p>}
+          {saved && (
+            <p className="rounded-card border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+              已保存 ✓ 新的画像将在你下次生成个性化日报时生效。
+            </p>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              className="rounded-full bg-cyan px-8 py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90"
+              disabled={saving}
+              className="rounded-full bg-cyan px-8 py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              保存画像
+              {saving ? "保存中…" : "保存画像"}
             </button>
             <button
               type="button"
