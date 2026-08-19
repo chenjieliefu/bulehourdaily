@@ -3,105 +3,205 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>微蓝日报 · 阶段一验收界面</title>
+  <title>微蓝日报 · 阶段二验收界面</title>
   <style>
     body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 24px; color: #1f2937; background: #f8fafc; }
     h1 { font-size: 20px; }
-    .bar { display: flex; gap: 24px; flex-wrap: wrap; background: #fff; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb; }
-    .bar div { font-size: 14px; }
-    button { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    .tabs { display: flex; gap: 8px; margin: 16px 0; }
+    .tabs button { background: #e5e7eb; color: #111827; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .tabs button.active { background: #2563eb; color: #fff; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .bar { display: flex; gap: 24px; flex-wrap: wrap; background: #fff; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb; font-size: 14px; }
+    button.primary { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
     table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; font-size: 13px; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
     th { background: #f1f5f9; }
     .failed { background: #fee2e2; color: #991b1b; }
     .muted { color: #6b7280; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .label { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    .label.official { background: #dcfce7; color: #166534; }
+    .label.multi_source { background: #dbeafe; color: #1e40af; }
+    .label.early_signal { background: #fef3c7; color: #92400e; }
+    .topic h3 { margin: 0 0 8px; }
+    .topic p { margin: 6px 0; }
+    .topic .k { color: #6b7280; font-size: 13px; }
     section { margin-top: 24px; }
     h2 { font-size: 16px; }
+    .progress { color: #2563eb; font-size: 14px; margin-left: 12px; }
   </style>
 </head>
 <body>
-  <h1>微蓝日报 · 阶段一验收界面</h1>
+  <h1>微蓝日报 · 阶段二验收界面</h1>
 
-  <div class="bar" id="statusBar">加载中…</div>
-  <button id="collectBtn" onclick="runCollect()">立即采集</button>
+  <div class="tabs">
+    <button class="active" onclick="showTab('sources', this)">信息源/采集</button>
+    <button onclick="showTab('events', this)">热点事件</button>
+    <button onclick="showTab('report', this)">日报</button>
+  </div>
 
-  <section>
-    <h2>信息源（<span id="srcCount">0</span>）</h2>
-    <table>
-      <thead>
-        <tr><th>ID</th><th>名称</th><th>类型</th><th>可信级别</th><th>启用</th><th>每日上限</th><th>最近状态</th></tr>
-      </thead>
-      <tbody id="srcBody"></tbody>
-    </table>
-  </section>
+  <!-- 信息源/采集 -->
+  <div id="sources" class="panel active">
+    <div class="bar" id="statusBar">加载中…</div>
+    <button class="primary" id="collectBtn" onclick="runCollect()">立即采集</button>
+    <section>
+      <h2>信息源（<span id="srcCount">0</span>）</h2>
+      <table>
+        <thead><tr><th>ID</th><th>名称</th><th>类型</th><th>可信级别</th><th>启用</th><th>最近状态</th></tr></thead>
+        <tbody id="srcBody"></tbody>
+      </table>
+    </section>
+    <section>
+      <h2>来源条目（最近 50 条）</h2>
+      <table>
+        <thead><tr><th>时间</th><th>标题</th><th>链接</th></tr></thead>
+        <tbody id="itemBody"></tbody>
+      </table>
+    </section>
+  </div>
 
-  <section>
-    <h2>来源条目（最近 50 条）</h2>
-    <table>
-      <thead>
-        <tr><th>时间</th><th>标题</th><th>作者</th><th>链接</th></tr>
-      </thead>
-      <tbody id="itemBody"></tbody>
-    </table>
-  </section>
+  <!-- 热点事件 -->
+  <div id="events" class="panel">
+    <button class="primary" id="extractBtn" onclick="runExtract()">提取事件</button>
+    <span class="progress" id="extractProgress"></span>
+    <section>
+      <h2>热点事件（<span id="evCount">0</span>）</h2>
+      <table>
+        <thead><tr><th>标题</th><th>可信度</th><th>相关性</th><th>行动性</th><th>排序分</th><th>证据数</th><th>理由</th></tr></thead>
+        <tbody id="evBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- 日报 -->
+  <div id="report" class="panel">
+    <button class="primary" id="reportBtn" onclick="runReport()">生成日报</button>
+    <span class="progress" id="reportProgress"></span>
+    <section id="reportContent"></section>
+  </div>
 
   <script>
-    const api = (p) => fetch('/api/v1' + p).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+    const api = (p, opts) => fetch('/api/v1' + p, opts).then(r => { if (!r.ok) throw new Error(r.status + ' ' + (r.statusText || '')); return r.json(); });
 
+    function showTab(name, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+      document.getElementById(name).classList.add('active');
+      btn.classList.add('active');
+      if (name === 'events') loadEvents();
+      if (name === 'report') loadReports();
+    }
+
+    // ---- 信息源/采集 ----
     async function loadStatus() {
       const s = await api('/status');
       const last = s.last_collect_at ? new Date(s.last_collect_at).toLocaleString('zh-CN') : '（从未采集）';
       document.getElementById('statusBar').innerHTML =
-        `<div>最近采集：<b>${last}</b></div>` +
-        `<div>信息源：${s.total_sources}（启用 ${s.enabled_sources}）</div>` +
-        `<div>来源条目：${s.total_items}</div>`;
-      renderSources(s.sources);
-    }
-
-    function renderSources(list) {
+        `<div>最近采集：<b>${last}</b></div><div>信息源：${s.total_sources}（启用 ${s.enabled_sources}）</div><div>来源条目：${s.total_items}</div>`;
       const typeName = { rss: 'RSS/博客', github_releases: 'GitHub 更新', x: 'X（占位）' };
-      document.getElementById('srcCount').textContent = list.length;
-      document.getElementById('srcBody').innerHTML = list.map(s => {
-        const lastText = s.last_status === 'failed'
-          ? `<span class="failed">失败</span>`
-          : (s.last_success_at ? new Date(s.last_success_at).toLocaleString('zh-CN') : '未采集');
-        return `<tr class="${s.last_status === 'failed' ? 'failed' : ''}">
-          <td>${s.source_id}</td><td>${escapeHtml(s.source_name)}</td>
-          <td>${typeName[s.type] || s.type}</td><td>${s.credibility_level || ''}</td>
-          <td>${s.enabled ? '是' : '否'}</td><td>${s.max_items_per_day || ''}</td><td>${lastText}</td>
-        </tr>`;
+      document.getElementById('srcCount').textContent = s.sources.length;
+      document.getElementById('srcBody').innerHTML = s.sources.map(src => {
+        const lastText = src.last_status === 'failed' ? `<span class="failed">失败</span>` : (src.last_success_at ? new Date(src.last_success_at).toLocaleString('zh-CN') : '未采集');
+        return `<tr class="${src.last_status === 'failed' ? 'failed' : ''}">
+          <td>${src.source_id}</td><td>${esc(src.source_name)}</td><td>${typeName[src.type] || src.type}</td>
+          <td>${src.credibility_level}</td><td>${src.enabled ? '是' : '否'}</td><td>${lastText}</td></tr>`;
       }).join('');
     }
-
     async function loadItems() {
       const items = await api('/source-items?limit=50');
       document.getElementById('itemBody').innerHTML = items.map(it =>
-        `<tr>
-          <td class="muted">${it.collected_at ? new Date(it.collected_at).toLocaleString('zh-CN') : ''}</td>
-          <td>${escapeHtml(it.title)}</td>
-          <td>${escapeHtml(it.author || '')}</td>
-          <td><a href="${escapeHtml(it.url)}" target="_blank" rel="noopener">打开</a></td>
-        </tr>`).join('') || '<tr><td colspan="4" class="muted">暂无条目，点「立即采集」</td></tr>';
+        `<tr><td class="muted">${it.collected_at ? new Date(it.collected_at).toLocaleString('zh-CN') : ''}</td>
+        <td>${esc(it.title)}</td><td><a href="${esc(it.url)}" target="_blank" rel="noopener">打开</a></td></tr>`).join('')
+        || '<tr><td colspan="3" class="muted">暂无条目，点「立即采集」</td></tr>';
     }
-
     async function runCollect() {
       const btn = document.getElementById('collectBtn');
       btn.disabled = true; btn.textContent = '采集中…';
       try {
-        const res = await fetch('/api/v1/collect/run', { method: 'POST' });
-        if (!res.ok) throw new Error(res.status);
-        const summary = await res.json();
-        alert(`采集完成：成功 ${summary.success} 个源，失败 ${summary.failed} 个源，新增条目 ${summary.new_items} 条。`);
-      } catch (e) {
-        alert('采集出错：' + e.message);
-      } finally {
-        btn.disabled = false; btn.textContent = '立即采集';
-      }
+        const s = await api('/collect/run', { method: 'POST' });
+        alert(`采集完成：成功 ${s.success} 个源，失败 ${s.failed} 个源，新增 ${s.new_items} 条。`);
+      } catch (e) { alert('采集出错：' + e.message); }
+      finally { btn.disabled = false; btn.textContent = '立即采集'; }
       await loadStatus(); await loadItems();
     }
 
-    function escapeHtml(s) {
+    // ---- 热点事件 ----
+    async function loadEvents() {
+      const evs = await api('/events');
+      document.getElementById('evCount').textContent = evs.length;
+      const labelName = { official: '官方确认', multi_source: '多方报道', early_signal: '早期信号' };
+      document.getElementById('evBody').innerHTML = evs.map(e =>
+        `<tr><td>${esc(e.title)}</td>
+        <td><span class="label ${e.credibility_label}">${labelName[e.credibility_label] || e.credibility_label}</span></td>
+        <td>${e.relevance_score}</td><td>${e.actionability_score}</td><td>${e.sort_score}</td>
+        <td>${e.evidence_count}</td><td class="muted">${esc(e.reason || '')}</td></tr>`).join('')
+        || '<tr><td colspan="7" class="muted">暂无事件，点「提取事件」</td></tr>';
+    }
+    async function runExtract() {
+      const btn = document.getElementById('extractBtn');
+      const prog = document.getElementById('extractProgress');
+      btn.disabled = true; btn.textContent = '提取中…';
+      try {
+        const { job_id } = await api('/events/extract', { method: 'POST' });
+        await poll(job_id, prog);
+        await loadEvents();
+      } catch (e) { prog.textContent = '出错：' + e.message; }
+      finally { btn.disabled = false; btn.textContent = '提取事件'; }
+    }
+
+    // ---- 日报 ----
+    async function loadReports() {
+      const reports = await api('/reports');
+      if (!reports.length) { document.getElementById('reportContent').innerHTML = '<p class="muted">暂无日报，点「生成日报」</p>'; return; }
+      renderReport(reports[0].id);
+    }
+    async function renderReport(id) {
+      const r = await api('/reports/' + id);
+      const labelName = { official: '官方确认', multi_source: '多方报道', early_signal: '早期信号' };
+      const topicsHtml = r.topics.map((t, i) => `
+        <div class="card topic">
+          <h3>选题 ${i + 1}：${esc(t.title)} <span class="label ${t.credibility_label || ''}">${labelName[t.credibility_label] || ''}</span></h3>
+          <p><span class="k">发生了什么：</span>${esc(t.what_happened)}</p>
+          <p><span class="k">为什么现在关注：</span>${esc(t.why_now)}</p>
+          <p><span class="k">切入角度：</span>${esc(t.angle)}</p>
+          <p><span class="k">前三秒钩子：</span>${esc(t.hook)}</p>
+          <p><span class="k">结构建议：</span>${esc(t.structure)}</p>
+          <p><span class="k">画面建议：</span>${esc(t.visual)}</p>
+          <p><span class="k">时间窗口：</span>${esc(t.time_window)}</p>
+          <p><span class="k">证据：</span>${t.evidence.map(ev => `<a href="${esc(ev.url)}" target="_blank" rel="noopener">${esc(ev.source_name)}</a>`).join('、') || '无'}</p>
+        </div>`).join('');
+      const briefsHtml = r.briefs.map(b => `<li>${esc(b.summary)}</li>`).join('') || '<li class="muted">（无速览）</li>';
+      document.getElementById('reportContent').innerHTML =
+        `<h2>今日日报（${r.report_date}）</h2><p><b>一句话摘要：</b>${esc(r.summary || '')}</p>` +
+        `<h3>选题建议</h3>${topicsHtml}<h3>热点速览</h3><ul>${briefsHtml}</ul>`;
+    }
+    async function runReport() {
+      const btn = document.getElementById('reportBtn');
+      const prog = document.getElementById('reportProgress');
+      btn.disabled = true; btn.textContent = '生成中…';
+      try {
+        const { job_id } = await api('/reports/generate', { method: 'POST' });
+        await poll(job_id, prog);
+        await loadReports();
+      } catch (e) { prog.textContent = '出错：' + e.message; }
+      finally { btn.disabled = false; btn.textContent = '生成日报'; }
+    }
+
+    // ---- 任务轮询 ----
+    async function poll(jobId, el) {
+      for (let i = 0; i < 120; i++) {
+        const j = await api('/jobs/' + jobId);
+        if (j.status === 'success') { el.textContent = '完成'; return; }
+        if (j.status === 'failed') { el.textContent = '失败：' + (j.error_message || ''); throw new Error(j.error_message || 'failed'); }
+        el.textContent = '处理中…';
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      throw new Error('超时');
+    }
+
+    function esc(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 

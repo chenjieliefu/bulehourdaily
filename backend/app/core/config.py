@@ -9,6 +9,13 @@ class Settings(BaseSettings):
     collect_interval_minutes: int = 45
     collect_timeout_seconds: int = 20
 
+    # 大模型（OpenAI 兼容接口，可切 DeepSeek 官方或火山方舟）
+    model_api_key: str = ""
+    model_base_url: str = "https://api.deepseek.com"
+    model_name: str = "deepseek-chat"
+    model_timeout_seconds: int = 120
+    model_max_retries: int = 2
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
