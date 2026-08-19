@@ -7,11 +7,11 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import collect, events, jobs, reports, source_items, sources, status
+from app.api import auth, collect, events, jobs, personalized, profile, reports, source_items, sources, status
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.services.collection import collect_all
-from app.services.seed import seed_sources
+from app.services.seed import seed_invite_codes, seed_sources
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_sources(db)
+        seed_invite_codes(db)
     finally:
         db.close()
 
@@ -59,6 +60,9 @@ app.include_router(status.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(profile.router, prefix="/api/v1")
+app.include_router(personalized.router, prefix="/api/v1")
 
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 

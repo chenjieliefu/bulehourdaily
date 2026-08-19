@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.models import Source
+from app.models import InviteCode, Source
 from app.models.enums import CredibilityLevel, SourceType
 
 _SEED_PATH = Path(__file__).resolve().parent.parent / "core" / "seed_sources.json"
@@ -31,3 +31,13 @@ def seed_sources(db: Session) -> int:
         count += 1
     db.commit()
     return count
+
+
+def seed_invite_codes(db: Session) -> int:
+    """首次启动写入几个测试邀请码（体验用）；已有则不重复。"""
+    if db.query(InviteCode.id).first() is not None:
+        return 0
+    for c in ["WEILAN001", "WEILAN002", "WEILAN003", "WEILAN004", "WEILAN005"]:
+        db.add(InviteCode(code=c))
+    db.commit()
+    return 5

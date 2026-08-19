@@ -27,6 +27,14 @@ def _run_job(job_id: int) -> None:
 
             result = generate_report(db)
             job.result_ref = f"report:{result['report_id']}"
+        elif job.kind == JobKind.personalized_report:
+            from .personalization import generate_personalized
+
+            user_id = (job.context or {}).get("user_id")
+            if not user_id:
+                raise ValueError("缺少 user_id")
+            result = generate_personalized(db, int(user_id))
+            job.result_ref = f"personalized:{result['report_id']}"
         else:
             raise ValueError(f"未知任务类型: {job.kind}")
 
@@ -45,11 +53,11 @@ def _run_job(job_id: int) -> None:
         db.close()
 
 
-def start_job(kind: JobKind) -> int:
+def start_job(kind: JobKind, context: dict | None = None) -> int:
     """创建任务并后台执行，返回 job id。"""
     db = SessionLocal()
     try:
-        job = Job(kind=kind, status=JobStatus.pending)
+        job = Job(kind=kind, status=JobStatus.pending, context=context)
         db.add(job)
         db.commit()
         db.refresh(job)
@@ -58,7 +66,7 @@ def start_job(kind: JobKind) -> int:
         db.close()
 
 
-def run_in_background(kind: JobKind) -> int:
-    job_id = start_job(kind)
+def run_in_background(kind: JobKind, context: dict | None = None) -> int:
+    job_id = start_job(kind, context)
     threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
     return job_id

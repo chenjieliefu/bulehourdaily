@@ -8,6 +8,11 @@ from .daily_report import DailyReport
 from .topic_recommendation import TopicRecommendation
 from .hot_brief import HotBrief
 from .job import Job
+from .user import User
+from .invite_code import InviteCode
+from .creator_profile import CreatorProfile
+from .personalized_report import PersonalizedReport
+from .personalized_topic import PersonalizedTopic
 
 __all__ = [
     "Source",
@@ -19,4 +24,9 @@ __all__ = [
     "TopicRecommendation",
     "HotBrief",
     "Job",
+    "User",
+    "InviteCode",
+    "CreatorProfile",
+    "PersonalizedReport",
+    "PersonalizedTopic",
 ]

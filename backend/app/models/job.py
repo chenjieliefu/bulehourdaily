@@ -1,7 +1,7 @@
 """生成任务（Job）：长耗时任务的持久化状态。"""
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Enum, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -19,6 +19,7 @@ class Job(Base):
     )
     result_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    context: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # 如个性化任务的 user_id
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

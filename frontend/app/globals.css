@@ -71,3 +71,17 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(24px);
 }
+
+.input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--color-steel);
+  background: var(--color-graphite);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--color-cloud);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+}

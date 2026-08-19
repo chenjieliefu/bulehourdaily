@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     topic_fresh_relax_hours: int = 48  # 不足 3 个时的放宽门槛
     hot_window_hours: int = 48         # 热度窗口：建议截止时间 = 事件时间 + 此值
 
+    # 鉴权
+    jwt_secret: str = "dev-secret-change-me-in-production"
+    trial_personalized_reports: int = 3  # 体验期最多 3 份个性化日报
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
