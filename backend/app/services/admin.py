@@ -3,7 +3,6 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -27,6 +26,18 @@ def _today() -> datetime:
     return datetime.now(_BJ).date()
 
 
+def _renumber(db: Session, report_id: int) -> None:
+    """重新给选题编号 1..N，保持连续。"""
+    topics = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report_id)
+        .order_by(TopicRecommendation.order_index, TopicRecommendation.id)
+        .all()
+    )
+    for i, t in enumerate(topics, start=1):
+        t.order_index = i
+
+
 def approve_topic(db: Session, topic_id: int) -> TopicRecommendation:
     topic = db.get(TopicRecommendation, topic_id)
     if topic is None:
@@ -41,7 +52,10 @@ def reject_topic(db: Session, topic_id: int) -> None:
     topic = db.get(TopicRecommendation, topic_id)
     if topic is None:
         raise ValueError("选题不存在")
+    report_id = topic.report_id
     db.delete(topic)
+    db.flush()
+    _renumber(db, report_id)
     db.commit()
 
 
@@ -90,14 +104,14 @@ def add_topic_from_event(db: Session, event_id: int) -> TopicRecommendation:
     else:
         data = _mock_topic(event)
 
+    existing_count = (
+        db.query(TopicRecommendation).filter(TopicRecommendation.report_id == report.id).count()
+    )
+    if existing_count >= 3:
+        raise ValueError("最多 3 个主选题，请先拒绝一个再补充")
+
     reason = str(data.get("publish_reason") or "趁热度最高").strip()
     time_window = f"建议 {_deadline_str(event.first_seen_at)} 前发布，{reason}"
-    max_order = (
-        db.query(func.max(TopicRecommendation.order_index))
-        .filter(TopicRecommendation.report_id == report.id)
-        .scalar()
-        or 0
-    )
 
     topic = TopicRecommendation(
         report_id=report.id,
@@ -110,10 +124,12 @@ def add_topic_from_event(db: Session, event_id: int) -> TopicRecommendation:
         structure=str(data.get("structure") or ""),
         visual=str(data.get("visual") or ""),
         time_window=time_window,
-        order_index=max_order + 1,
+        order_index=existing_count + 1,
         reviewed=True,
     )
     db.add(topic)
+    db.flush()
+    _renumber(db, report.id)
     db.commit()
     db.refresh(topic)
     return topic

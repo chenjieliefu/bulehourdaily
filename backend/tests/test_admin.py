@@ -64,3 +64,28 @@ def test_add_topic_from_event(db, source_factory, item_factory):
     report = db.get(DailyReport, topic.report_id)
     assert report is not None
     assert topic.time_window.startswith("建议 ")
+
+
+def test_add_topic_limited_to_three(db, source_factory, item_factory):
+    src = source_factory(max_per_day=10)
+    for i in range(10):
+        item_factory(src, title=f"t{i}")
+    extract_events(db)  # 5 个事件
+    events = db.query(HotEvent).limit(3).all()
+    for e in events:
+        admin_svc.add_topic_from_event(db, e.id)
+    e4 = db.query(HotEvent).offset(3).first()
+    with pytest.raises(ValueError, match="最多 3 个"):
+        admin_svc.add_topic_from_event(db, e4.id)
+
+
+def test_reject_renumbers(db, source_factory, item_factory):
+    report, topics = _setup(db, source_factory, item_factory)
+    admin_svc.reject_topic(db, topics[0].id)
+    remaining = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .order_by(TopicRecommendation.order_index)
+        .all()
+    )
+    assert [t.order_index for t in remaining] == [1, 2]
