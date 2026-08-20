@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiRegister } from "@/lib/api";
 import { setToken, setUser } from "@/lib/auth";
+import Brand from "@/app/components/Brand";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,8 +34,7 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian px-6 py-10">
       <div className="w-full max-w-sm">
-        <Link href="/" className="font-serif text-2xl text-cloud">微蓝日报</Link>
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-cyan">Blue Hour Daily</p>
+        <Link href="/" className="inline-flex rounded-xl"><Brand /></Link>
 
         <h1 className="mt-8 font-serif text-xl text-cloud">邀请制注册</h1>
 
@@ -75,7 +75,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-full bg-cyan py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-full bg-cyan py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? "注册中…" : "注册并填写画像"}
           </button>

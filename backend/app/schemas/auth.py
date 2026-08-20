@@ -16,6 +16,7 @@ class LoginRequest(BaseModel):
 class UserRead(BaseModel):
     id: int
     email: str
+    is_operator: bool = False
 
 
 class AuthResponse(BaseModel):

@@ -160,7 +160,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full bg-cyan px-8 py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-full bg-cyan px-8 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {saving ? "保存中…" : "保存画像"}
             </button>

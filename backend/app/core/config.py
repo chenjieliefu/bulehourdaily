@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     # 鉴权
     jwt_secret: str = "dev-secret-change-me-in-production"
     trial_personalized_reports: int = 3  # 体验期最多 3 份个性化日报
-    operator_key: str = "weilan-local-dev"  # 运营者访问口令（上线前必须改）
+    operator_email: str = "admin@weilan.com"  # 运营者账号邮箱
+    operator_password: str = ""  # 运营者账号密码（设置后首次启动自动创建运营者账号）
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

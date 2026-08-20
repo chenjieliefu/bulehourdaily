@@ -4,7 +4,9 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.models import InviteCode, Source
+from app.core.config import settings
+from app.core.security import hash_password
+from app.models import InviteCode, Source, User
 from app.models.enums import CredibilityLevel, SourceType
 
 _SEED_PATH = Path(__file__).resolve().parent.parent / "core" / "seed_sources.json"
@@ -41,3 +43,18 @@ def seed_invite_codes(db: Session) -> int:
         db.add(InviteCode(code=c))
     db.commit()
     return 5
+
+
+def seed_operator_account(db: Session) -> int:
+    """若配置了运营者密码且尚无运营者账号，则创建运营者账号。"""
+    if not settings.operator_password:
+        return 0
+    exists = db.query(User).filter(User.is_operator.is_(True)).first()
+    if exists is not None:
+        return 0
+    email = settings.operator_email.strip().lower()
+    if db.query(User).filter(User.email == email).first() is not None:
+        return 0
+    db.add(User(email=email, password_hash=hash_password(settings.operator_password), is_operator=True))
+    db.commit()
+    return 1

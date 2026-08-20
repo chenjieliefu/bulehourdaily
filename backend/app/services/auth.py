@@ -1,10 +1,7 @@
 """注册、登录、当前用户依赖。"""
-import secrets
-
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_token, decode_token, hash_password, verify_password
 from app.core.time import utcnow
@@ -55,7 +52,10 @@ def get_current_user(
     return user
 
 
-def require_operator(x_operator_key: str | None = Header(default=None)) -> None:
-    """运营者访问校验：请求头带 X-Operator-Key，与配置的口令一致。"""
-    if not x_operator_key or not secrets.compare_digest(x_operator_key, settings.operator_key):
+def get_current_operator(
+    user: User = Depends(get_current_user),
+) -> User:
+    """运营者访问校验：登录用户必须是运营者账号。"""
+    if not user.is_operator:
         raise HTTPException(status_code=403, detail="无运营者权限")
+    return user

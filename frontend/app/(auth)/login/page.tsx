@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiLogin } from "@/lib/api";
 import { setToken, setUser } from "@/lib/auth";
+import Brand from "@/app/components/Brand";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,8 +33,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian px-6">
       <div className="w-full max-w-sm">
-        <Link href="/" className="font-serif text-2xl text-cloud">微蓝日报</Link>
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-cyan">Blue Hour Daily</p>
+        <Link href="/" className="inline-flex rounded-xl"><Brand /></Link>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <Field label="邮箱">
@@ -62,7 +62,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-full bg-cyan py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-full bg-cyan py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? "登录中…" : "登录"}
           </button>

@@ -2,7 +2,7 @@
 const TOKEN_KEY = "weilan_token";
 const USER_KEY = "weilan_user";
 
-export type AuthUser = { id: number; email: string };
+export type AuthUser = { id: number; email: string; is_operator: boolean };
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

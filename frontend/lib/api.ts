@@ -1,5 +1,5 @@
 // 集中式 API 层：页面只调用这里，不散落 fetch。
-import { getOperatorKey, getToken } from "@/lib/auth";
+import { getToken } from "@/lib/auth";
 
 export type CredibilityLabel = "official" | "multi_source" | "early_signal";
 
@@ -138,10 +138,6 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (path.startsWith("/admin")) {
-    const opKey = getOperatorKey();
-    if (opKey) headers["X-Operator-Key"] = opKey;
-  }
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers, cache: "no-store" });
   if (!res.ok) {
@@ -162,13 +158,13 @@ export async function getReport(id: number): Promise<Report> {
 
 // ---- 鉴权 ----
 export async function apiRegister(email: string, password: string, invite_code: string) {
-  return apiFetch<{ token: string; user: { id: number; email: string } }>("/auth/register", {
+  return apiFetch<{ token: string; user: { id: number; email: string; is_operator: boolean } }>("/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, password, invite_code }),
   });
 }
 export async function apiLogin(email: string, password: string) {
-  return apiFetch<{ token: string; user: { id: number; email: string } }>("/auth/login", {
+  return apiFetch<{ token: string; user: { id: number; email: string; is_operator: boolean } }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });

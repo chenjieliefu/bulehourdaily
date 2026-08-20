@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
-/* 微蓝日报 设计 token（来源：Refero「Origin Financial」暗色系统） */
+/* 微蓝日报设计 token：取自品牌 Logo 的雾蓝海面、暖白天空与日出橙。 */
 @theme {
   /* 品牌色 */
-  --color-obsidian: #0f1011;   /* 页面画布 */
-  --color-abyss: #090a0b;      /* 更深一层 */
-  --color-graphite: #2e2e2e;   /* 卡片表面 */
-  --color-steel: #3f4041;      /* hover/按压 */
-  --color-silver: #cacaca;     /* 浅色表面 */
-  --color-fog: #6a6b6b;        /* 弱化文字 */
-  --color-ash: #9f9fa0;        /* 正文 */
-  --color-cloud: #f5f5f7;      /* 柔和标题白 */
-  --color-iris: #847dff;       /* 主紫 */
-  --color-cyan: #00b3dd;       /* 青蓝 */
-  --color-pale-iris: #d1c9ff;  /* 浅紫 */
-  --color-deep-iris: #4b49aa;  /* 深紫 */
-  --color-periwinkle: #90b8f0; /* 浅蓝 */
-  --color-orchid: #dd90d8;     /* 粉 */
+  --color-obsidian: #f6f8f7;   /* 暖白页面画布 */
+  --color-abyss: #edf4f7;      /* 雾蓝侧栏 */
+  --color-graphite: #ffffff;    /* 卡片表面 */
+  --color-steel: #dce7ec;       /* 描边与悬停 */
+  --color-silver: #4c6575;      /* 次要正文 */
+  --color-fog: #7b909d;         /* 弱化文字 */
+  --color-ash: #395264;         /* 正文 */
+  --color-cloud: #123f60;       /* 标题深海蓝 */
+  --color-iris: #5d86ad;        /* 晨雾蓝 */
+  --color-cyan: #287daf;        /* 海天蓝 */
+  --color-pale-iris: #dbeaf3;   /* 浅雾蓝 */
+  --color-deep-iris: #315f82;   /* 深海蓝 */
+  --color-periwinkle: #7fa8c7;  /* 浅蓝 */
+  --color-orchid: #e2a17f;      /* 日出暖橙 */
 
   /* 圆角 */
   --radius-card: 16px;
@@ -30,56 +30,118 @@
 
 :root {
   --sky-gradient: linear-gradient(
-    rgb(15, 16, 17),
-    rgb(19, 29, 39) 18%,
-    rgb(26, 71, 136) 37%,
-    rgb(64, 138, 193) 69%,
-    rgb(64, 138, 193) 102%
+    180deg,
+    #92bee0 0%,
+    #dbeaf2 44%,
+    #f8e4d8 69%,
+    #f8faf9 100%
   );
+  --shadow-card: 0 18px 45px rgba(50, 91, 116, 0.08);
+  --shadow-card-hover: 0 22px 55px rgba(50, 91, 116, 0.13);
 }
 
 body {
   background: var(--color-obsidian);
   color: var(--color-ash);
   font-family: "PingFang SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+  background-image:
+    radial-gradient(circle at 85% -5%, rgba(126, 178, 214, 0.2), transparent 28rem),
+    linear-gradient(180deg, #fbfcfb 0%, #f6f8f7 42rem);
 }
 
 .sky-gradient {
   background: var(--sky-gradient);
 }
 
-/* 网格线：参考页「grid lines drawn on darkness」*/
+/* 极浅网格让大面积白底仍有层次。 */
 .grid-lines {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(18, 63, 96, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 63, 96, 0.035) 1px, transparent 1px);
   background-size: 72px 72px;
 }
 
-/* 地平线微光：黎明前地平线上的第一缕蓝光 */
+/* 海平面与日出微光。 */
 .horizon-glow {
-  background: linear-gradient(
-    to top,
-    rgba(0, 179, 221, 0.28),
-    rgba(144, 184, 240, 0.10) 35%,
-    transparent 70%
-  );
+  background:
+    radial-gradient(circle at 50% 78%, rgba(248, 177, 106, 0.8) 0 2.5%, rgba(248, 177, 106, 0.22) 3% 11%, transparent 24%),
+    linear-gradient(to top, rgba(66, 130, 174, 0.28), rgba(149, 190, 217, 0.08) 42%, transparent 70%);
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(203, 220, 229, 0.75);
   backdrop-filter: blur(24px);
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 84% 2%, rgba(126, 178, 214, 0.16), transparent 24rem),
+    var(--color-obsidian);
+}
+
+.paper-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-steel);
+  box-shadow: var(--shadow-card);
+}
+
+.report-cover {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 83% 68%, rgba(245, 175, 105, 0.78) 0 2%, rgba(245, 175, 105, 0.18) 2.5% 12%, transparent 23%),
+    linear-gradient(180deg, rgba(157, 200, 229, 0.88) 0%, rgba(224, 236, 241, 0.88) 54%, rgba(250, 231, 217, 0.82) 72%, rgba(255, 255, 255, 0.94) 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.report-cover::before,
+.report-cover::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -4%;
+  width: 108%;
+  border-radius: 50%;
+  border-top: 1px solid rgba(255, 255, 255, 0.88);
+}
+
+.report-cover::before {
+  height: 52px;
+  bottom: -24px;
+  background: rgba(125, 170, 199, 0.12);
+}
+
+.report-cover::after {
+  height: 42px;
+  bottom: -7px;
+  transform: translateX(6%);
+}
+
+.eyebrow {
+  color: var(--color-cyan);
+  font-family: var(--font-roboto-mono), "SF Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.section-rule {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, var(--color-steel), transparent);
 }
 
 .input {
   width: 100%;
   border-radius: 8px;
   border: 1px solid var(--color-steel);
-  background: var(--color-graphite);
+  background: rgba(255, 255, 255, 0.92);
   padding: 10px 12px;
   font-size: 14px;
   color: var(--color-cloud);
+  box-shadow: inset 0 1px 2px rgba(50, 91, 116, 0.04);
 }
 .input:focus {
   outline: none;

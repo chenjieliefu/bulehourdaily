@@ -28,7 +28,7 @@ from app.api import (
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.services.collection import collect_all
-from app.services.seed import seed_invite_codes, seed_sources
+from app.services.seed import seed_invite_codes, seed_operator_account, seed_sources
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -68,6 +68,7 @@ async def lifespan(app: FastAPI):
     try:
         seed_sources(db)
         seed_invite_codes(db)
+        seed_operator_account(db)
     finally:
         db.close()
 

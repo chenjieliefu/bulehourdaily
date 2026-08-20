@@ -88,7 +88,7 @@ export default function MinePage() {
           <button
             onClick={onGenerate}
             disabled={busy}
-            className="rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? (progress || "生成中…") : "生成今日个性化日报"}
           </button>
