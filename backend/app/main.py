@@ -1,8 +1,10 @@
 """微蓝日报 后端入口（第 1 阶段）。"""
 from contextlib import asynccontextmanager
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -44,6 +46,21 @@ def _scheduled_collect():
         db.close()
 
 
+def _daily_report_job():
+    """每天北京时间 08:00：提取事件 + 生成通用日报（草稿，待质检）。"""
+    db = SessionLocal()
+    try:
+        from app.services.event_extraction import extract_events
+        from app.services.report_generation import generate_report
+
+        extract_events(db)
+        generate_report(db)
+    except Exception:  # noqa: BLE001 —— 定时任务兜底
+        pass
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
@@ -59,6 +76,12 @@ async def lifespan(app: FastAPI):
         "interval",
         minutes=settings.collect_interval_minutes,
         id="collect",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        _daily_report_job,
+        CronTrigger(hour=8, minute=0, timezone=ZoneInfo("Asia/Shanghai")),
+        id="daily_report",
         replace_existing=True,
     )
     scheduler.start()

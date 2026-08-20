@@ -1,0 +1,9 @@
+# veFaaS 打包时排除这些（密钥/本地数据/虚拟环境绝不进包）
+.venv/
+data/
+.env
+.vefaas/
+__pycache__/
+.pytest_cache/
+tests/
+*.pyc
