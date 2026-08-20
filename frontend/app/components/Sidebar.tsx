@@ -18,6 +18,7 @@ const TOP_GROUP: NavItem[] = [
 
 // 下组：账户与商业（展示顺序从上到下）
 const BOTTOM_GROUP: NavItem[] = [
+  { href: "/review", label: "运营质检" },
   { href: undefined, label: "升级会员", soon: true },
   { href: undefined, label: "兑换会员", soon: true },
   { href: undefined, label: "邀请送会员", soon: true },

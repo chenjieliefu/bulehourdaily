@@ -1,5 +1,5 @@
 """选题建议（TopicRecommendation）：日报中的三个主选题。"""
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -24,3 +24,4 @@ class TopicRecommendation(Base):
     visual: Mapped[str] = mapped_column(Text, nullable=False)
     time_window: Mapped[str] = mapped_column(Text, nullable=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    reviewed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

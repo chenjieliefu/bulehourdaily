@@ -213,3 +213,67 @@ export async function submitFeedback(
 export async function getMySubscription(): Promise<Subscription | null> {
   return apiFetch<Subscription | null>("/subscriptions/me");
 }
+
+// ---- 质检（运营者，本地直调）----
+export type ReviewTopic = {
+  id: number;
+  title: string;
+  what_happened: string;
+  why_now: string;
+  angle: string;
+  hook: string;
+  structure: string;
+  visual: string;
+  time_window: string;
+  order_index: number;
+  hot_event_id: number;
+  credibility_label: CredibilityLabel | null;
+  reviewed: boolean;
+  evidence: EvidenceItem[];
+};
+
+export type CandidateEvent = {
+  id: number;
+  title: string;
+  summary: string;
+  credibility_label: CredibilityLabel;
+  sort_score: number;
+  evidence_count: number;
+};
+
+export type ReviewPayload = {
+  report_id: number | null;
+  report_date: string | null;
+  status: "draft" | "published" | null;
+  summary: string | null;
+  published_at: string | null;
+  topics: ReviewTopic[];
+  candidates: CandidateEvent[];
+};
+
+export type InviteCode = { id: number; code: string; used: boolean; used_at: string | null };
+
+export async function getReview(): Promise<ReviewPayload> {
+  return apiFetch<ReviewPayload>("/admin/review");
+}
+export async function approveTopic(id: number) {
+  return apiFetch<{ ok: boolean }>(`/admin/topics/${id}/approve`, { method: "POST" });
+}
+export async function rejectTopic(id: number) {
+  return apiFetch<void>(`/admin/topics/${id}`, { method: "DELETE" });
+}
+export async function editTopic(id: number, fields: Record<string, string>) {
+  return apiFetch<ReviewTopic>(`/admin/topics/${id}`, { method: "PUT", body: JSON.stringify(fields) });
+}
+export async function addTopicFromEvent(eventId: number) {
+  return apiFetch<{ ok: boolean }>(`/admin/topics`, { method: "POST", body: JSON.stringify({ event_id: eventId }) });
+}
+export async function publishReport() {
+  return apiFetch<{ ok: boolean }>(`/admin/report/publish`, { method: "POST" });
+}
+export async function createInviteCodes(count: number): Promise<InviteCode[]> {
+  return apiFetch<InviteCode[]>(`/admin/invite-codes`, { method: "POST", body: JSON.stringify({ count }) });
+}
+export async function listInviteCodes(): Promise<InviteCode[]> {
+  return apiFetch<InviteCode[]>(`/admin/invite-codes`);
+}

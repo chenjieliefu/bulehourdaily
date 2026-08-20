@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api import (
+    admin,
     auth,
     collect,
     events,
@@ -80,6 +81,7 @@ app.include_router(personalized.router, prefix="/api/v1")
 app.include_router(plans.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")
 app.include_router(subscriptions.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
