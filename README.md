@@ -40,6 +40,14 @@
     └── requirements.txt
 ```
 
+## 线上环境（火山引擎 veFaaS）
+
+- 产品入口（前端）：https://sbi34p3pcick3cph3km5b.apigateway-cn-beijing.volceapi.com/
+- 后端 API：https://sc0hshvaar6kuul9kb1pu.apigateway-cn-beijing.volceapi.com/
+- 质检页：产品入口侧边栏「运营质检」，访问口令见 `backend/.env` 的 `OPERATOR_KEY`（生产口令单独保存，不回显）。
+- 邀请码：上线库预置 WEILAN001 ~ WEILAN005；也可在质检页批量生成。
+- 部署工具：火山引擎函数服务 veFaaS（`vefaas` CLI），配置见 `backend/.vefaas/config.json` 与 `frontend/.vefaas/config.json`。
+
 ## 环境要求
 
 - Python 3.11（已装 3.11.9）
