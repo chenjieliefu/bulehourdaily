@@ -19,9 +19,10 @@ from app.schemas.admin import (
 )
 from app.schemas.event import EvidenceItem
 from app.services import admin as admin_svc
+from app.services.auth import require_operator
 
 _BJ = ZoneInfo("Asia/Shanghai")
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_operator)])
 
 
 def _evidence_for_events(db: Session, event_ids: list[int]) -> dict[int, list[EvidenceItem]]:

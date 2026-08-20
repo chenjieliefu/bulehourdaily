@@ -14,6 +14,7 @@ import {
   type ReviewPayload,
   type ReviewTopic,
 } from "@/lib/api";
+import { clearOperatorKey, getOperatorKey, setOperatorKey } from "@/lib/auth";
 import { fmtTime } from "@/lib/format";
 
 const FIELDS: { key: keyof Pick<ReviewTopic, "title" | "what_happened" | "why_now" | "angle" | "hook" | "structure" | "visual" | "time_window">; label: string }[] = [
@@ -34,6 +35,9 @@ export default function ReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -47,9 +51,33 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
+    if (getOperatorKey()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAuthed(true);
+      load();
+    } else {
+      setLoading(false);
+    }
   }, [load]);
+
+  async function onAuth(e: React.FormEvent) {
+    e.preventDefault();
+    setOperatorKey(keyInput.trim());
+    setAuthError(null);
+    try {
+      await load();
+      setAuthed(true);
+    } catch {
+      clearOperatorKey();
+      setAuthError("口令不正确，请重试");
+    }
+  }
+
+  function logout() {
+    clearOperatorKey();
+    setAuthed(false);
+    setKeyInput("");
+  }
 
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -75,6 +103,32 @@ export default function ReviewPage() {
     }
   }
 
+  if (!authed) {
+    return (
+      <div className="mx-auto max-w-[420px] pt-16">
+        <p className="font-mono text-xs uppercase tracking-widest text-fog">Operator Access</p>
+        <h1 className="mt-3 font-serif text-2xl text-cloud">运营者访问</h1>
+        <p className="mt-2 text-sm text-fog">质检页仅限运营者，请输入访问口令。</p>
+        <form onSubmit={onAuth} className="mt-6 space-y-4">
+          <label className="block">
+            <span className="font-mono text-xs uppercase tracking-widest text-cyan">访问口令</span>
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              className="input mt-1.5"
+              placeholder="输入运营者口令"
+            />
+          </label>
+          {authError && <p className="text-sm text-red-400">{authError}</p>}
+          <button type="submit" className="rounded-full bg-cyan px-8 py-2.5 text-sm font-medium text-obsidian hover:opacity-90">
+            进入质检
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-[880px]">
       <div className="flex flex-wrap items-end justify-between border-b border-steel pb-8 pt-10">
@@ -88,12 +142,20 @@ export default function ReviewPage() {
             </p>
           )}
         </div>
-        <button
-          onClick={onPublish}
-          className="mt-4 rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90"
-        >
-          发布日报
-        </button>
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            onClick={onPublish}
+            className="rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-obsidian transition-opacity hover:opacity-90"
+          >
+            发布日报
+          </button>
+          <button
+            onClick={logout}
+            className="rounded-full border border-steel px-4 py-2.5 text-sm text-silver hover:border-red-500/40 hover:text-red-400"
+          >
+            退出
+          </button>
+        </div>
       </div>
 
       {error && <p className="mt-6 rounded-card border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</p>}

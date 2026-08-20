@@ -1,5 +1,5 @@
 // 集中式 API 层：页面只调用这里，不散落 fetch。
-import { getToken } from "@/lib/auth";
+import { getOperatorKey, getToken } from "@/lib/auth";
 
 export type CredibilityLabel = "official" | "multi_source" | "early_signal";
 
@@ -138,6 +138,10 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (path.startsWith("/admin")) {
+    const opKey = getOperatorKey();
+    if (opKey) headers["X-Operator-Key"] = opKey;
+  }
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers, cache: "no-store" });
   if (!res.ok) {

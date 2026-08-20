@@ -31,3 +31,19 @@ export function clearAuth() {
 export function isLoggedIn(): boolean {
   return !!getToken();
 }
+
+// 运营者访问口令（本地存，用于质检页）
+const OPERATOR_KEY = "weilan_operator_key";
+
+export function getOperatorKey(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(OPERATOR_KEY);
+}
+
+export function setOperatorKey(key: string) {
+  localStorage.setItem(OPERATOR_KEY, key);
+}
+
+export function clearOperatorKey() {
+  localStorage.removeItem(OPERATOR_KEY);
+}
