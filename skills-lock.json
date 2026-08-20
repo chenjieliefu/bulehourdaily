@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "vefaas": {
+      "source": "vefaas-dev/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vefaas/SKILL.md",
+      "computedHash": "8919955069b6d1bb202e35b3aa0841dfcc1e5a2dee8a9c6a4619d87eb840e279"
+    }
+  }
+}

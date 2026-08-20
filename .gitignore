@@ -24,3 +24,4 @@ data/
 # macOS
 .DS_Store
 .vefaas/
+.agents/
