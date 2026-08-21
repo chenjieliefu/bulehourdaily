@@ -9,6 +9,16 @@ class Settings(BaseSettings):
     collect_interval_minutes: int = 45
     collect_timeout_seconds: int = 20
 
+    # SQLite + TOS 过渡期备份。五项凭据全部为空时，本地开发不启用云备份。
+    tos_access_key_id: str = ""
+    tos_secret_access_key: str = ""
+    tos_bucket: str = ""
+    tos_endpoint: str = ""
+    tos_region: str = ""
+    tos_database_object_key: str = "database/weilan.db"
+    tos_backup_interval_minutes: int = 5
+    tos_request_timeout_seconds: int = 20
+
     # 大模型（OpenAI 兼容接口，可切 DeepSeek 官方或火山方舟）
     model_api_key: str = ""
     model_base_url: str = "https://api.deepseek.com"
