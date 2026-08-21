@@ -33,7 +33,11 @@ from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.services.collection import collect_all
 from app.services.database_backup import DatabaseBackupError, backup_database, restore_database
-from app.services.seed import seed_invite_codes, seed_operator_account, seed_sources
+from app.services.seed import (
+    seed_configured_invite_codes,
+    seed_operator_account,
+    seed_sources,
+)
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 _MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -94,7 +98,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_sources(db)
-        seed_invite_codes(db)
+        seed_configured_invite_codes(db)
         seed_operator_account(db)
     finally:
         db.close()

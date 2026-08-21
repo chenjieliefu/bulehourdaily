@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     app_env: str = "dev"
+    # 固定测试邀请码仅允许本地显式开启；生产环境默认绝不自动创建。
+    seed_test_invite_codes: bool = False
     # SQLite 相对路径以启动目录为准（从 backend/ 启动 → backend/data/weilan.db）
     database_url: str = "sqlite:///data/weilan.db"
     collect_interval_minutes: int = 45

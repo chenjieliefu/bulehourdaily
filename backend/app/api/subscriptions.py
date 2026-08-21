@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.models import Subscription, User
 from app.models.enums import SubscriptionStatus
 from app.schemas.subscription import SubscriptionCreate, SubscriptionRead
-from app.services.auth import get_current_user
+from app.services.auth import get_current_operator, get_current_user
 from app.services.subscriptions import create_subscription, has_active_subscription
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
@@ -28,9 +28,14 @@ def my_subscription(user: User = Depends(get_current_user), db: Session = Depend
     return sub
 
 
-@router.post("", response_model=SubscriptionRead, status_code=201)
+@router.post(
+    "",
+    response_model=SubscriptionRead,
+    status_code=201,
+    dependencies=[Depends(get_current_operator)],
+)
 def operator_create(payload: SubscriptionCreate, db: Session = Depends(get_db)):
-    """运营者人工开通（MVP 本地直调，正式运营后台在阶段 6）。"""
+    """运营者人工开通。"""
     user = db.get(User, payload.user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="用户不存在")

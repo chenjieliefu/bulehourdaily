@@ -45,6 +45,13 @@ def seed_invite_codes(db: Session) -> int:
     return 5
 
 
+def seed_configured_invite_codes(db: Session) -> int:
+    """仅在明确开启开发开关时写入固定测试邀请码。"""
+    if not settings.seed_test_invite_codes:
+        return 0
+    return seed_invite_codes(db)
+
+
 def seed_operator_account(db: Session) -> int:
     """若配置了运营者密码且尚无运营者账号，则创建运营者账号。"""
     if not settings.operator_password:

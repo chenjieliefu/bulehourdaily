@@ -7,12 +7,17 @@ from app.core.database import get_db
 from app.models import EventEvidence, HotEvent, SourceItem
 from app.models.enums import JobKind
 from app.schemas.event import EventDetail, EventRead, EvidenceItem
+from app.services.auth import get_current_operator
 from app.services.jobs import run_in_background
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
-@router.post("/extract", status_code=202)
+@router.post(
+    "/extract",
+    status_code=202,
+    dependencies=[Depends(get_current_operator)],
+)
 def trigger_extract():
     job_id = run_in_background(JobKind.extract_events)
     return {"job_id": job_id}

@@ -13,15 +13,20 @@ from app.models import (
     SourceItem,
     TopicRecommendation,
 )
-from app.models.enums import JobKind
+from app.models.enums import JobKind, ReportStatus
 from app.schemas.event import EvidenceItem
 from app.schemas.report import BriefRead, ReportDetail, ReportRead, TopicRead
+from app.services.auth import get_current_operator
 from app.services.jobs import run_in_background
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
-@router.post("/generate", status_code=202)
+@router.post(
+    "/generate",
+    status_code=202,
+    dependencies=[Depends(get_current_operator)],
+)
 def trigger_generate():
     job_id = run_in_background(JobKind.generate_report)
     return {"job_id": job_id}
@@ -29,7 +34,12 @@ def trigger_generate():
 
 @router.get("", response_model=list[ReportRead])
 def list_reports(db: Session = Depends(get_db)):
-    return db.query(DailyReport).order_by(DailyReport.report_date.desc()).all()
+    return (
+        db.query(DailyReport)
+        .filter(DailyReport.status == ReportStatus.published)
+        .order_by(DailyReport.report_date.desc())
+        .all()
+    )
 
 
 def _evidence_for_events(db: Session, event_ids: list[int]) -> dict[int, list[EvidenceItem]]:
@@ -59,7 +69,14 @@ def _evidence_for_events(db: Session, event_ids: list[int]) -> dict[int, list[Ev
 
 @router.get("/{report_id}", response_model=ReportDetail)
 def get_report(report_id: int, db: Session = Depends(get_db)):
-    report = db.get(DailyReport, report_id)
+    report = (
+        db.query(DailyReport)
+        .filter(
+            DailyReport.id == report_id,
+            DailyReport.status == ReportStatus.published,
+        )
+        .first()
+    )
     if report is None:
         raise HTTPException(status_code=404, detail="report not found")
 
