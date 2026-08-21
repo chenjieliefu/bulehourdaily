@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ReportView from "@/app/components/ReportView";
-import { getReport, listReports, type Report } from "@/lib/api";
+import { getReport, listReports, type Report, type ReportSummary } from "@/lib/api";
 import { fmtDate } from "@/lib/format";
 
 export default function ArchivePage() {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);

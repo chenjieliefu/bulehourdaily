@@ -59,3 +59,14 @@ def get_current_operator(
     if not user.is_operator:
         raise HTTPException(status_code=403, detail="无运营者权限")
     return user
+
+
+def get_optional_current_user(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """允许匿名访问；若携带有效登录凭证，则返回对应用户。"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    user_id = decode_token(authorization[len("Bearer "):])
+    return db.get(User, user_id) if user_id is not None else None

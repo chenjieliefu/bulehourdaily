@@ -18,8 +18,10 @@ from app.api import (
     jobs,
     personalized,
     plans,
+    product_feedback,
     profile,
     reports,
+    site_content,
     source_items,
     sources,
     status,
@@ -98,12 +100,14 @@ app.include_router(collect.router, prefix="/api/v1")
 app.include_router(status.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
+app.include_router(site_content.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(profile.router, prefix="/api/v1")
 app.include_router(personalized.router, prefix="/api/v1")
 app.include_router(plans.router, prefix="/api/v1")
 app.include_router(feedback.router, prefix="/api/v1")
+app.include_router(product_feedback.router, prefix="/api/v1")
 app.include_router(subscriptions.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 

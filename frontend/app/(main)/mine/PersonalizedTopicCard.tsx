@@ -26,13 +26,17 @@ const FB_OPTIONS: { key: Feedback["status"]; label: string }[] = [
 
 export default function PersonalizedTopicCard({ topic: t }: { topic: PersonalizedTopic }) {
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
   const [planBusy, setPlanBusy] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback["status"] | null>(t.feedback_status);
   const [fbBusy, setFbBusy] = useState(false);
 
   async function onExpandPlan() {
-    if (plan) return;
+    if (plan) {
+      setPlanOpen((open) => !open);
+      return;
+    }
     setPlanBusy(true);
     setPlanError(null);
     try {
@@ -53,6 +57,7 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
         p = await getPlan(t.id);
       }
       setPlan(p);
+      setPlanOpen(true);
     } catch (e) {
       setPlanError(e instanceof Error ? e.message : "生成失败");
     } finally {
@@ -117,14 +122,16 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
         <button
           onClick={onExpandPlan}
           disabled={planBusy}
-          className="rounded-full border border-iris/40 px-5 py-1.5 text-xs text-pale-iris transition-colors hover:bg-iris/10 disabled:opacity-50"
+          aria-expanded={planOpen}
+          className="inline-flex items-center gap-2 rounded-full border border-cyan/45 bg-pale-iris/60 px-5 py-2 text-xs font-medium text-deep-iris shadow-sm transition-all hover:border-cyan hover:bg-pale-iris disabled:opacity-50"
         >
-          {planBusy ? "生成方案中…" : plan ? "收起创作方案" : "展开创作方案"}
+          {planBusy ? "生成方案中…" : planOpen ? "收起创作方案" : "展开创作方案"}
+          {!planBusy && <span aria-hidden="true" className="text-cyan">{planOpen ? "↑" : "↓"}</span>}
         </button>
         {planError && <p className="mt-2 text-xs text-red-400">{planError}</p>}
 
-        {plan && (
-          <div className="mt-4 space-y-4 rounded-card border border-iris/25 bg-iris/[0.05] p-5 text-sm">
+        {plan && planOpen && (
+          <div className="mt-4 space-y-4 rounded-card border border-iris/25 bg-abyss/35 p-5 text-sm">
             <P label="核心观点">{plan.core_viewpoint}</P>
             <div>
               <p className="font-mono text-xs uppercase tracking-widest text-fog">开场钩子</p>
@@ -140,17 +147,17 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
                 {plan.titles.map((x, i) => <li key={i}>{x}</li>)}
               </ul>
             </div>
-            <div>
-              <p className="font-mono text-xs uppercase tracking-widest text-amber-400/80">风险提示</p>
-              <p className="mt-1 text-amber-200/80">{plan.risks}</p>
+            <div className="rounded-card border border-amber-200 bg-amber-50/90 p-4">
+              <p className="font-mono text-xs uppercase tracking-widest text-amber-700">风险提示</p>
+              <p className="mt-1.5 leading-relaxed text-amber-900">{plan.risks}</p>
             </div>
           </div>
         )}
       </div>
 
       {/* 发布反馈 */}
-      <div className="mt-5 flex items-center gap-2">
-        <span className="font-mono text-xs uppercase tracking-widest text-fog">发布反馈</span>
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span className="mr-1 font-mono text-xs uppercase tracking-widest text-deep-iris">发布反馈</span>
         {FB_OPTIONS.map((o) => (
           <button
             key={o.key}
@@ -158,8 +165,8 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
             disabled={fbBusy}
             className={`rounded-full border px-3 py-1 text-xs transition-colors disabled:opacity-50 ${
               feedback === o.key
-                ? "border-cyan bg-cyan/15 text-cyan"
-                : "border-steel text-silver hover:border-cyan hover:text-cyan"
+                ? "border-cyan bg-cyan text-white shadow-sm"
+                : "border-steel bg-white text-ash hover:border-cyan hover:bg-pale-iris/50 hover:text-deep-iris"
             }`}
           >
             {o.label}

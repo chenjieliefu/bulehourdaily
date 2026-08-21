@@ -1,7 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import Brand from "@/app/components/Brand";
+import { getPublicSiteContent } from "@/lib/api";
+
+const DEFAULT_CONTENT = {
+  eyebrow: "Blue Hour Daily · 08:00",
+  title: "在世界醒来之前，看见下一刻。",
+  subtitle: "每天 08:00，把海外最新 AI 动态，变成三个值得拍的抖音选题。",
+  section_title: "每天一份日报，把「看信息」变成「拍什么」。",
+  features: [
+    { title: "不漏掉", detail: "盯着 40+ 海外 AI 信息源，每天 08:00 汇总最新动态。" },
+    { title: "会判断", detail: "聚成热点事件，标注可信度，告诉你哪个值得跟进。" },
+    { title: "能行动", detail: "每个选题给出钩子、结构、画面建议，直接开拍。" },
+  ],
+};
 
 export default function LandingPage() {
+  const [content, setContent] = useState(DEFAULT_CONTENT);
+  useEffect(() => {
+    getPublicSiteContent("product_intro").then((row) => setContent({ ...DEFAULT_CONTENT, ...row.content } as typeof DEFAULT_CONTENT)).catch(() => undefined);
+  }, []);
   return (
     <div className="min-h-screen bg-obsidian">
       {/* 顶栏 */}
@@ -24,13 +44,13 @@ export default function LandingPage() {
 
         <div className="relative">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-deep-iris">
-            Blue Hour Daily · 08:00
+            {content.eyebrow}
           </p>
           <h1 className="mx-auto mt-8 max-w-3xl font-serif text-6xl leading-tight text-cloud md:text-7xl">
-            在世界醒来之前，<br className="hidden md:block" />看见下一刻。
+            {content.title}
           </h1>
           <p className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-ash">
-            每天 08:00，把海外最新 AI 动态，变成三个值得拍的抖音选题。
+            {content.subtitle}
           </p>
           <p className="mt-5 font-mono text-xs uppercase tracking-widest text-deep-iris/60">
             See what&apos;s next before the world wakes.
@@ -44,10 +64,10 @@ export default function LandingPage() {
               看今日日报
             </Link>
             <Link
-              href="/#subscribe"
+              href="/upgrade"
               className="glass rounded-full px-8 py-3 text-sm text-cloud transition-colors hover:text-cyan"
             >
-              了解订阅
+              了解会员
             </Link>
           </div>
         </div>
@@ -57,18 +77,14 @@ export default function LandingPage() {
       <section className="mx-auto max-w-[1200px] px-6 py-24">
         <p className="font-mono text-xs uppercase tracking-widest text-cyan">产品是什么</p>
         <h2 className="mt-4 max-w-2xl font-serif text-3xl leading-snug text-cloud">
-          每天一份日报，把「看信息」变成「拍什么」。
+          {content.section_title}
         </h2>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {[
-            { n: "01", t: "不漏掉", d: "盯着 40+ 海外 AI 信息源，每天 08:00 汇总最新动态。" },
-            { n: "02", t: "会判断", d: "聚成热点事件，标注可信度，告诉你哪个值得跟进。" },
-            { n: "03", t: "能行动", d: "每个选题给出钩子、结构、画面建议，直接开拍。" },
-          ].map((item) => (
-            <div key={item.n} className="paper-card rounded-feature p-8">
-              <p className="font-serif text-3xl text-deep-iris">{item.n}</p>
-              <h3 className="mt-4 font-serif text-xl text-cloud">{item.t}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-ash">{item.d}</p>
+          {content.features.map((item, index) => (
+            <div key={`${index}-${item.title}`} className="paper-card rounded-feature p-8">
+              <p className="font-serif text-3xl text-deep-iris">{String(index + 1).padStart(2, "0")}</p>
+              <h3 className="mt-4 font-serif text-xl text-cloud">{item.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ash">{item.detail}</p>
             </div>
           ))}
         </div>

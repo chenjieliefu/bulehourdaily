@@ -57,46 +57,7 @@ export default function DailyPage() {
         </div>
       )}
 
-      {!loading && !error && report && (
-        <>
-          <ReportView report={report} />
-
-          {/* 订阅价值说明 */}
-          <section id="subscribe" className="paper-card relative mx-auto mt-16 max-w-[960px] overflow-hidden rounded-feature p-8 md:p-10">
-            <div className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-pale-iris/70 blur-3xl" />
-            <p className="eyebrow relative">为什么订阅</p>
-            <h2 className="mt-4 font-serif text-2xl text-cloud">
-              通用日报看今天，个性化日报看「适合我的今天」。
-            </h2>
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              <div className="rounded-card border border-steel bg-white/75 p-6">
-                <p className="font-mono text-xs uppercase tracking-widest text-fog">免费 · 通用日报</p>
-                <ul className="mt-4 space-y-2 text-sm text-silver">
-                  <li>· 每天 3 个通用选题</li>
-                  <li>· 5-7 条热点速览</li>
-                  <li>· 证据链接与可信度标签</li>
-                  <li>· 最近 7 天归档</li>
-                </ul>
-              </div>
-              <div className="rounded-card border border-cyan/20 bg-pale-iris/45 p-6">
-                <p className="font-mono text-xs uppercase tracking-widest text-cyan">体验 / 订阅 · 个性化日报</p>
-                <ul className="mt-4 space-y-2 text-sm text-silver">
-                  <li>· 按你的账号定位，重选 3 个选题</li>
-                  <li>· 每个选题可展开创作方案</li>
-                  <li>· 每日邮件送达</li>
-                  <li>· 发布反馈，越用越懂你</li>
-                </ul>
-                <button
-                  disabled
-                  className="mt-6 cursor-not-allowed rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-white opacity-60"
-                >
-                  申请体验（即将开放）
-                </button>
-              </div>
-            </div>
-          </section>
-        </>
-      )}
+      {!loading && !error && report && <ReportView report={report} />}
     </div>
   );
 }

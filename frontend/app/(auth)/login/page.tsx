@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiLogin } from "@/lib/api";
-import { setToken, setUser } from "@/lib/auth";
+import { setAuthSession } from "@/lib/auth";
+import { sanitizePassword } from "@/lib/password";
 import Brand from "@/app/components/Brand";
 
 export default function LoginPage() {
@@ -20,9 +21,8 @@ export default function LoginPage() {
     setError(null);
     try {
       const res = await apiLogin(email, password);
-      setToken(res.token);
-      setUser(res.user);
-      router.push("/mine");
+      setAuthSession(res.token, res.user);
+      router.push(res.user.is_operator ? "/ops" : "/mine");
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败");
     } finally {
@@ -50,8 +50,9 @@ export default function LoginPage() {
             <input
               type="password"
               required
+              maxLength={128}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(sanitizePassword(e.target.value))}
               className="input"
               placeholder="••••••••"
             />

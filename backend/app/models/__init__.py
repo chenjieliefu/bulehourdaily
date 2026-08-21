@@ -17,6 +17,8 @@ from .creation_plan import CreationPlan
 from .topic_feedback import TopicFeedback
 from .mail_delivery import MailDelivery
 from .subscription import Subscription
+from .product_feedback import ProductFeedback
+from .site_content import SiteContent
 
 __all__ = [
     "Source",
@@ -37,4 +39,6 @@ __all__ = [
     "TopicFeedback",
     "MailDelivery",
     "Subscription",
+    "ProductFeedback",
+    "SiteContent",
 ]
