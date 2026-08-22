@@ -27,6 +27,15 @@ def _run_job(job_id: int) -> None:
 
             result = generate_report(db)
             job.result_ref = f"report:{result['report_id']}"
+        elif job.kind == JobKind.daily_publication:
+            from datetime import date
+
+            from .daily_publication import run_daily_publication
+
+            raw_date = (job.context or {}).get("report_date")
+            target_date = date.fromisoformat(raw_date) if raw_date else None
+            result = run_daily_publication(db, report_date=target_date)
+            job.result_ref = f"daily:{result['report_id']}:{result['status']}"
         elif job.kind == JobKind.personalized_report:
             from .personalization import generate_personalized
 
@@ -79,4 +88,11 @@ def start_job(kind: JobKind, context: dict | None = None) -> int:
 def run_in_background(kind: JobKind, context: dict | None = None) -> int:
     job_id = start_job(kind, context)
     threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
+    return job_id
+
+
+def run_now(kind: JobKind, context: dict | None = None) -> int:
+    """同步执行并持久化任务状态，供调度器使用。"""
+    job_id = start_job(kind, context)
+    _run_job(job_id)
     return job_id

@@ -43,6 +43,7 @@ class ReportStatus(str, enum.Enum):
 class JobKind(str, enum.Enum):
     extract_events = "extract_events"
     generate_report = "generate_report"
+    daily_publication = "daily_publication"
     personalized_report = "personalized_report"
     generate_plan = "generate_plan"
 

@@ -1,10 +1,12 @@
 """日报生成编排测试（mock 模式）。"""
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from app.core.time import utcnow
 from app.models import DailyReport, HotBrief, HotEvent, TopicRecommendation
+from app.models.enums import CredibilityLabel, EventStatus, ReportStatus
 from app.services.event_extraction import extract_events
 from app.services.report_generation import generate_report
 
@@ -49,6 +51,58 @@ def test_regenerate_same_day_overwrites(db, source_factory, item_factory):
 def test_generate_without_events_raises(db):
     with pytest.raises(ValueError):
         generate_report(db)
+
+
+def test_events_from_older_published_reports_are_not_reused(db):
+    today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+    old_event = HotEvent(
+        title="已经发布过的事件",
+        summary="旧摘要",
+        credibility_label=CredibilityLabel.official,
+        status=EventStatus.selected,
+        first_seen_at=utcnow(),
+    )
+    new_event = HotEvent(
+        title="今天首次出现的事件",
+        summary="新摘要",
+        credibility_label=CredibilityLabel.official,
+        status=EventStatus.candidate,
+        first_seen_at=utcnow(),
+    )
+    old_report = DailyReport(
+        report_date=today - timedelta(days=1),
+        status=ReportStatus.published,
+        summary="上一期日报",
+        published_at=utcnow(),
+    )
+    db.add_all([old_event, new_event, old_report])
+    db.flush()
+    db.add(
+        TopicRecommendation(
+            report_id=old_report.id,
+            hot_event_id=old_event.id,
+            title="旧选题",
+            what_happened="旧内容",
+            why_now="昨天",
+            angle="旧角度",
+            hook="旧钩子",
+            structure="旧结构",
+            visual="旧画面",
+            time_window="已过期",
+            order_index=1,
+            reviewed=True,
+        )
+    )
+    db.commit()
+
+    result = generate_report(db, report_date=today)
+
+    topics = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == result["report_id"])
+        .all()
+    )
+    assert [topic.hot_event_id for topic in topics] == [new_event.id]
 
 
 def test_expired_events_are_not_topics(db, source_factory, item_factory):

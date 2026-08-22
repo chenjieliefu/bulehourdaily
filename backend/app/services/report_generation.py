@@ -4,7 +4,7 @@
 建议发布时机 = 事件时间 + 热度窗口，转成绝对时间展示。
 LLM 只负责「写内容」，不负责「选哪些事件」。
 """
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -89,10 +89,45 @@ def _mock_report(topic_events: list[HotEvent], brief_events: list[HotEvent]) -> 
     }
 
 
-def generate_report(db: Session) -> dict:
+def generate_report(
+    db: Session,
+    *,
+    report_date: date | None = None,
+    event_from: datetime | None = None,
+    event_before: datetime | None = None,
+) -> dict:
+    target_date = report_date or datetime.now(_BJ).date()
+    published_topic_event_ids = {
+        event_id
+        for (event_id,) in db.query(TopicRecommendation.hot_event_id)
+        .join(DailyReport, TopicRecommendation.report_id == DailyReport.id)
+        .filter(
+            DailyReport.status == ReportStatus.published,
+            DailyReport.report_date < target_date,
+        )
+        .all()
+    }
+    published_brief_event_ids = {
+        event_id
+        for (event_id,) in db.query(HotBrief.hot_event_id)
+        .join(DailyReport, HotBrief.report_id == DailyReport.id)
+        .filter(
+            DailyReport.status == ReportStatus.published,
+            DailyReport.report_date < target_date,
+        )
+        .all()
+    }
+    already_published_event_ids = published_topic_event_ids | published_brief_event_ids
+
+    query = db.query(HotEvent).filter(HotEvent.status != EventStatus.archived)
+    if already_published_event_ids:
+        query = query.filter(HotEvent.id.notin_(already_published_event_ids))
+    if event_from is not None:
+        query = query.filter(HotEvent.first_seen_at >= event_from)
+    if event_before is not None:
+        query = query.filter(HotEvent.first_seen_at < event_before)
     events = (
-        db.query(HotEvent)
-        .filter(HotEvent.status != EventStatus.archived)
+        query
         .order_by(HotEvent.sort_score.desc())
         .limit(15)
         .all()
@@ -120,7 +155,7 @@ def generate_report(db: Session) -> dict:
 
     topics_by_event = {t.get("event_id"): t for t in data.get("topics", [])}
 
-    today = datetime.now(_BJ).date()
+    today = target_date
     report = db.query(DailyReport).filter(DailyReport.report_date == today).first()
     if report is None:
         report = DailyReport(report_date=today, status=ReportStatus.draft)

@@ -1,5 +1,5 @@
 """事件提取编排测试（mock 模式，无需真实 Key）。"""
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from app.core.time import utcnow
 from app.models import EventEvidence, HotEvent, SourceItem
@@ -64,6 +64,27 @@ def test_select_candidate_items_rejects_unknown_publish_time(db, source_factory)
     db.commit()
 
     assert select_candidate_items(db, hours=48) == []
+
+
+def test_select_candidate_items_uses_half_open_publication_window(
+    db, source_factory, item_factory
+):
+    source = source_factory(max_per_day=5)
+    before = item_factory(source, title="before-window")
+    inside = item_factory(source, title="inside-window")
+    at_end = item_factory(source, title="at-window-end")
+    before.published_at = datetime(2026, 8, 21, 15, 59)
+    inside.published_at = datetime(2026, 8, 22, 4, 0)
+    at_end.published_at = datetime(2026, 8, 22, 16, 0)
+    db.commit()
+
+    selected = select_candidate_items(
+        db,
+        published_from=datetime(2026, 8, 21, 16, 0),
+        published_before=datetime(2026, 8, 22, 16, 0),
+    )
+
+    assert [item.id for item in selected] == [inside.id]
 
 
 def test_select_candidate_items_prefers_core_sources_when_enough_exist(

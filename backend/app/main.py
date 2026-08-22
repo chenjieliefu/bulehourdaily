@@ -68,18 +68,17 @@ def _scheduled_collect():
 
 
 def _daily_report_job():
-    """每天北京时间 08:00：提取事件 + 生成通用日报（草稿，待质检）。"""
-    db = SessionLocal()
+    """每天北京时间 08:00：生产、质量检查并自动公开当日日报。"""
     try:
-        from app.services.event_extraction import extract_events
-        from app.services.report_generation import generate_report
+        from datetime import datetime
 
-        extract_events(db)
-        generate_report(db)
+        from app.models.enums import JobKind
+        from app.services.jobs import run_now
+
+        report_date = datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
+        run_now(JobKind.daily_publication, {"report_date": report_date})
     except Exception:  # noqa: BLE001 —— 定时任务兜底
-        logger.exception("日报生成任务失败")
-    finally:
-        db.close()
+        logger.exception("日报自动发布任务启动失败")
     _safe_database_backup()
 
 
@@ -112,12 +111,17 @@ async def lifespan(app: FastAPI):
         minutes=settings.collect_interval_minutes,
         id="collect",
         replace_existing=True,
+        coalesce=True,
+        max_instances=1,
     )
     scheduler.add_job(
         _daily_report_job,
         CronTrigger(hour=8, minute=0, timezone=ZoneInfo("Asia/Shanghai")),
         id="daily_report",
         replace_existing=True,
+        coalesce=True,
+        max_instances=1,
+        misfire_grace_time=3600,
     )
     scheduler.add_job(
         _scheduled_database_backup,
@@ -125,6 +129,8 @@ async def lifespan(app: FastAPI):
         minutes=settings.tos_backup_interval_minutes,
         id="database_backup",
         replace_existing=True,
+        coalesce=True,
+        max_instances=1,
     )
     scheduler.start()
     try:

@@ -16,18 +16,27 @@ _SUPPLEMENTAL_SOURCE_TYPES = {SourceType.aibase_daily, SourceType.hacker_news}
 _MINIMUM_DAILY_CANDIDATES = 3
 
 
-def select_candidate_items(db: Session, hours: int = 48, limit: int = 150) -> list[SourceItem]:
+def select_candidate_items(
+    db: Session,
+    hours: int = 48,
+    limit: int = 150,
+    *,
+    published_from: datetime | None = None,
+    published_before: datetime | None = None,
+) -> list[SourceItem]:
     """官方源优先；不足三条时才用补充参考源补位。"""
-    since = utcnow() - timedelta(hours=hours)
+    since = published_from or (utcnow() - timedelta(hours=hours))
     core_items: list[SourceItem] = []
     supplemental_items: list[SourceItem] = []
     for source in db.query(Source).filter(Source.enabled.is_(True)).all():
+        query = db.query(SourceItem).filter(
+            SourceItem.source_id == source.id,
+            SourceItem.published_at >= since,
+        )
+        if published_before is not None:
+            query = query.filter(SourceItem.published_at < published_before)
         batch = (
-            db.query(SourceItem)
-            .filter(
-                SourceItem.source_id == source.id,
-                SourceItem.published_at >= since,
-            )
+            query
             .order_by(SourceItem.published_at.desc())
             .limit(source.max_items_per_day)
             .all()
@@ -104,9 +113,18 @@ def _clamp_score(value) -> int:
         return 1
 
 
-def extract_events(db: Session) -> dict:
+def extract_events(
+    db: Session,
+    *,
+    published_from: datetime | None = None,
+    published_before: datetime | None = None,
+) -> dict:
     """执行一次事件提取，返回摘要信息。"""
-    items = select_candidate_items(db)
+    items = select_candidate_items(
+        db,
+        published_from=published_from,
+        published_before=published_before,
+    )
     if not items:
         return {"events_created": 0, "candidates": 0}
 
