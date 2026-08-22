@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Brand from "@/app/components/Brand";
+import PublicSitePreviewDialog from "@/app/components/operations/PublicSitePreviewDialog";
 import { apiCurrentUser } from "@/lib/api";
 import { clearAuth, getToken, getUser, setAuthSession } from "@/lib/auth";
 
@@ -25,6 +26,7 @@ export default function OperationsShell({ children }: { children: React.ReactNod
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +61,7 @@ export default function OperationsShell({ children }: { children: React.ReactNod
 
   function logout() {
     clearAuth("operator");
-    router.replace("/?auth=login&next=%2Fops");
+    router.replace("/");
   }
 
   if (!ready) return <div className="flex min-h-screen items-center justify-center text-sm text-fog">正在验证运营身份…</div>;
@@ -92,7 +94,14 @@ export default function OperationsShell({ children }: { children: React.ReactNod
           ))}
         </nav>
         <div className="border-t border-steel px-4 py-4 lg:sticky lg:bottom-0 lg:bg-[#eef4f6]">
-          <Link href="/" className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-fog hover:bg-white/60 hover:text-cloud"><span>查看公开站点</span><span>→</span></Link>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs text-fog hover:bg-white/60 hover:text-cloud"
+          >
+            <span>查看公开站点</span>
+            <span>预览</span>
+          </button>
           <div className="mt-2 rounded-xl border border-steel bg-white/70 px-3 py-3">
             <p className="truncate text-xs text-cloud">{email}</p>
             <button onClick={logout} className="mt-2 text-[11px] text-fog hover:text-red-600">退出运营账号</button>
@@ -103,6 +112,8 @@ export default function OperationsShell({ children }: { children: React.ReactNod
       <main className="min-w-0 flex-1 px-5 pb-20 sm:px-8 lg:px-10 xl:px-14">
         <div className="mx-auto max-w-[1280px]">{children}</div>
       </main>
+
+      <PublicSitePreviewDialog open={previewOpen} onClose={() => setPreviewOpen(false)} />
     </div>
   );
 }
