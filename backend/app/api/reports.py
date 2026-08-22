@@ -12,11 +12,12 @@ from app.models import (
     HotEvent,
     SourceItem,
     TopicRecommendation,
+    User,
 )
 from app.models.enums import JobKind, ReportStatus
 from app.schemas.event import EvidenceItem
 from app.schemas.report import BriefRead, ReportDetail, ReportRead, TopicRead
-from app.services.auth import get_current_operator
+from app.services.auth import get_current_operator, get_current_user, get_optional_current_user
 from app.services.jobs import run_in_background
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -33,7 +34,11 @@ def trigger_generate():
 
 
 @router.get("", response_model=list[ReportRead])
-def list_reports(db: Session = Depends(get_db)):
+def list_reports(
+    _user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """登录用户可查看全部已发布日报，用于往期归档。"""
     return (
         db.query(DailyReport)
         .filter(DailyReport.status == ReportStatus.published)
@@ -67,28 +72,16 @@ def _evidence_for_events(db: Session, event_ids: list[int]) -> dict[int, list[Ev
     return result
 
 
-@router.get("/{report_id}", response_model=ReportDetail)
-def get_report(report_id: int, db: Session = Depends(get_db)):
-    report = (
-        db.query(DailyReport)
-        .filter(
-            DailyReport.id == report_id,
-            DailyReport.status == ReportStatus.published,
-        )
-        .first()
-    )
-    if report is None:
-        raise HTTPException(status_code=404, detail="report not found")
-
+def _report_detail(db: Session, report: DailyReport) -> ReportDetail:
     topics = (
         db.query(TopicRecommendation)
-        .filter(TopicRecommendation.report_id == report_id)
+        .filter(TopicRecommendation.report_id == report.id)
         .order_by(TopicRecommendation.order_index)
         .all()
     )
     briefs = (
         db.query(HotBrief)
-        .filter(HotBrief.report_id == report_id)
+        .filter(HotBrief.report_id == report.id)
         .order_by(HotBrief.order_index)
         .all()
     )
@@ -136,3 +129,45 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         topics=topic_reads,
         briefs=brief_reads,
     )
+
+
+@router.get("/latest", response_model=ReportDetail | None)
+def get_latest_report(db: Session = Depends(get_db)):
+    """最新一期公开日报始终允许匿名访问。"""
+    report = (
+        db.query(DailyReport)
+        .filter(DailyReport.status == ReportStatus.published)
+        .order_by(DailyReport.report_date.desc(), DailyReport.id.desc())
+        .first()
+    )
+    return _report_detail(db, report) if report is not None else None
+
+
+@router.get("/{report_id}", response_model=ReportDetail)
+def get_report(
+    report_id: int,
+    user: User | None = Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+):
+    report = (
+        db.query(DailyReport)
+        .filter(
+            DailyReport.id == report_id,
+            DailyReport.status == ReportStatus.published,
+        )
+        .first()
+    )
+    if report is None:
+        raise HTTPException(status_code=404, detail="report not found")
+
+    latest_id = (
+        db.query(DailyReport.id)
+        .filter(DailyReport.status == ReportStatus.published)
+        .order_by(DailyReport.report_date.desc(), DailyReport.id.desc())
+        .limit(1)
+        .scalar()
+    )
+    if report.id != latest_id and user is None:
+        raise HTTPException(status_code=401, detail="登录后才能查看往期日报")
+
+    return _report_detail(db, report)

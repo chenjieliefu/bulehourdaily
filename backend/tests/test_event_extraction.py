@@ -1,6 +1,11 @@
 """事件提取编排测试（mock 模式，无需真实 Key）。"""
-from app.models import EventEvidence, HotEvent
+from datetime import timedelta
+
+from app.core.time import utcnow
+from app.models import EventEvidence, HotEvent, SourceItem
+from app.models.enums import SourceType
 from app.services.event_extraction import extract_events, select_candidate_items
+from app.services.url_normalize import url_hash
 
 
 def test_extract_creates_events_and_evidence(db, source_factory, item_factory):
@@ -25,6 +30,74 @@ def test_select_candidate_items_respects_source_limit(db, source_factory, item_f
     for i in range(5):
         item_factory(src, title=f"t{i}")
     assert len(select_candidate_items(db)) == 2
+
+
+def test_select_candidate_items_rejects_old_article_collected_recently(db, source_factory):
+    """刚入库不等于刚发布，旧闻不能进入今日候选。"""
+    source = source_factory()
+    item = SourceItem(
+        source_id=source.id,
+        title="三天前的旧闻",
+        url="https://example.com/old-news",
+        url_hash=url_hash("https://example.com/old-news"),
+        published_at=utcnow() - timedelta(hours=72),
+        collected_at=utcnow(),
+    )
+    db.add(item)
+    db.commit()
+
+    assert select_candidate_items(db, hours=48) == []
+
+
+def test_select_candidate_items_rejects_unknown_publish_time(db, source_factory):
+    """缺少原始发布时间的条目不能冒充今日新闻。"""
+    source = source_factory()
+    item = SourceItem(
+        source_id=source.id,
+        title="没有发布时间",
+        url="https://example.com/no-date",
+        url_hash=url_hash("https://example.com/no-date"),
+        published_at=None,
+        collected_at=utcnow(),
+    )
+    db.add(item)
+    db.commit()
+
+    assert select_candidate_items(db, hours=48) == []
+
+
+def test_select_candidate_items_prefers_core_sources_when_enough_exist(
+    db, source_factory, item_factory
+):
+    core = source_factory(name="core", max_per_day=5)
+    supplement = source_factory(
+        name="supplement", type_=SourceType.hacker_news, max_per_day=3
+    )
+    for i in range(3):
+        item_factory(core, title=f"core-{i}")
+        item_factory(supplement, title=f"supplement-{i}")
+
+    selected = select_candidate_items(db)
+
+    assert {item.source_id for item in selected} == {core.id}
+
+
+def test_select_candidate_items_uses_supplements_only_to_reach_minimum(
+    db, source_factory, item_factory
+):
+    core = source_factory(name="core", max_per_day=5)
+    supplement = source_factory(
+        name="supplement", type_=SourceType.aibase_daily, max_per_day=5
+    )
+    item_factory(core, title="core-0")
+    for i in range(4):
+        item_factory(supplement, title=f"supplement-{i}")
+
+    selected = select_candidate_items(db)
+
+    assert len(selected) == 3
+    assert any(item.source_id == core.id for item in selected)
+    assert sum(item.source_id == supplement.id for item in selected) == 2
 
 
 def test_reextract_does_not_duplicate_evidence(db, source_factory, item_factory):

@@ -61,6 +61,7 @@ def item_factory(db):
             title=title,
             url=url,
             url_hash=url_hash(url),
+            published_at=datetime.utcnow(),
             collected_at=datetime.utcnow(),
         )
         db.add(it)

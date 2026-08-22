@@ -6,6 +6,9 @@ class SourceType(str, enum.Enum):
     rss = "rss"                      # 官方博客/新闻 RSS/Atom
     github_releases = "github_releases"  # GitHub Releases Atom
     x = "x"                          # X（推特）账号，本阶段占位、不真采
+    web_page = "web_page"            # 官网观察源，未接页面采集前保持停用
+    aibase_daily = "aibase_daily"    # AIBase 最新一期日报，仅作聚合参考
+    hacker_news = "hacker_news"      # Hacker News 官方 API，经 AI 规则筛选
 
 
 class CredibilityLevel(str, enum.Enum):

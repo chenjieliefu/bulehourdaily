@@ -3,9 +3,10 @@
 关键约束：
 - 单一信息源失败不阻断其他来源。
 - 相同规范化 URL 只入库一次（确定性去重）。
+- 只保存原始发布时间在最近 48 小时内的内容；未知时间和旧闻不入库。
 - 每次运行可追踪到具体信息源与失败时间。
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -40,7 +41,14 @@ def collect_source(db: Session, source: Source) -> SourceRunResult:
         )
 
     new_count = 0
+    freshness_start = started - timedelta(hours=48)
+    freshness_end = started + timedelta(hours=1)
     for it in items:
+        published_at = it.get("published_at")
+        if not isinstance(published_at, datetime):
+            continue
+        if published_at < freshness_start or published_at > freshness_end:
+            continue
         h = url_hash(it["url"])
         exists = db.query(SourceItem.id).filter(SourceItem.url_hash == h).first()
         if exists:
@@ -53,7 +61,7 @@ def collect_source(db: Session, source: Source) -> SourceRunResult:
                 author=it["author"],
                 url=it["url"],
                 url_hash=h,
-                published_at=it["published_at"],
+                published_at=published_at,
                 raw=it["raw"],
             )
         )

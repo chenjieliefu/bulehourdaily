@@ -2,38 +2,51 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.time import utcnow
 from app.models import EventEvidence, HotEvent, Source, SourceItem
-from app.models.enums import CredibilityLabel, EventStatus
+from app.models.enums import CredibilityLabel, EventStatus, SourceType
 from . import llm
 from .credibility import compute_credibility
 from .scoring import compute_sort_score
 
 _PROMPT = (Path(__file__).resolve().parent / "prompts" / "event_extraction.md").read_text(encoding="utf-8")
+_SUPPLEMENTAL_SOURCE_TYPES = {SourceType.aibase_daily, SourceType.hacker_news}
+_MINIMUM_DAILY_CANDIDATES = 3
 
 
 def select_candidate_items(db: Session, hours: int = 48, limit: int = 150) -> list[SourceItem]:
-    """近 N 小时条目，按源限量（防止单一源占满），按时间取前 limit 条。"""
+    """官方源优先；不足三条时才用补充参考源补位。"""
     since = utcnow() - timedelta(hours=hours)
-    selected: list[SourceItem] = []
+    core_items: list[SourceItem] = []
+    supplemental_items: list[SourceItem] = []
     for source in db.query(Source).filter(Source.enabled.is_(True)).all():
         batch = (
             db.query(SourceItem)
             .filter(
                 SourceItem.source_id == source.id,
-                or_(
-                    SourceItem.published_at >= since,
-                    SourceItem.collected_at >= since,
-                ),
+                SourceItem.published_at >= since,
             )
             .order_by(SourceItem.published_at.desc())
             .limit(source.max_items_per_day)
             .all()
         )
-        selected.extend(batch)
+        target = (
+            supplemental_items
+            if source.type in _SUPPLEMENTAL_SOURCE_TYPES
+            else core_items
+        )
+        target.extend(batch)
+
+    core_items.sort(key=lambda item: item.published_at, reverse=True)
+    if len(core_items) >= _MINIMUM_DAILY_CANDIDATES:
+        return core_items[:limit]
+
+    supplemental_items.sort(key=lambda item: item.published_at, reverse=True)
+    target_count = min(_MINIMUM_DAILY_CANDIDATES, limit)
+    needed = max(0, target_count - len(core_items))
+    selected = core_items + supplemental_items[:needed]
     selected.sort(key=lambda x: x.published_at or x.collected_at, reverse=True)
     return selected[:limit]
 

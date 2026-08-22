@@ -129,27 +129,61 @@ def test_operator_can_still_use_internal_write_endpoints(db, client, monkeypatch
     )
 
 
-def test_public_reports_only_expose_published(db, client):
+def test_latest_report_is_public_but_archive_requires_login(db, client):
     draft = DailyReport(
-        report_date=date(2026, 8, 20),
+        report_date=date(2026, 8, 19),
         status=ReportStatus.draft,
         summary="内部草稿",
     )
-    published = DailyReport(
-        report_date=date(2026, 8, 21),
+    archived = DailyReport(
+        report_date=date(2026, 8, 20),
         status=ReportStatus.published,
-        summary="公开日报",
+        summary="往期日报",
         published_at=datetime.utcnow(),
     )
-    db.add_all([draft, published])
+    latest = DailyReport(
+        report_date=date(2026, 8, 21),
+        status=ReportStatus.published,
+        summary="最新公开日报",
+        published_at=datetime.utcnow(),
+    )
+    db.add_all([draft, archived, latest])
     db.commit()
 
-    response = client.get("/api/v1/reports")
+    assert client.get("/api/v1/reports").status_code == 401
+
+    response = client.get("/api/v1/reports/latest")
+    assert response.status_code == 200
+    assert response.json()["id"] == latest.id
+    assert client.get(f"/api/v1/reports/{latest.id}").status_code == 200
+    assert client.get(f"/api/v1/reports/{archived.id}").status_code == 401
+    assert client.get(f"/api/v1/reports/{draft.id}").status_code == 404
+
+    user = User(email="archive-reader@example.com", password_hash="test")
+    db.add(user)
+    db.commit()
+    headers = {"Authorization": f"Bearer {create_token(user.id)}"}
+    response = client.get("/api/v1/reports", headers=headers)
 
     assert response.status_code == 200
-    assert [row["id"] for row in response.json()] == [published.id]
-    assert client.get(f"/api/v1/reports/{published.id}").status_code == 200
-    assert client.get(f"/api/v1/reports/{draft.id}").status_code == 404
+    assert [row["id"] for row in response.json()] == [latest.id, archived.id]
+    assert client.get(f"/api/v1/reports/{archived.id}", headers=headers).status_code == 200
+
+
+def test_latest_report_returns_null_when_nothing_is_published(db, client):
+    db.add(
+        DailyReport(
+            report_date=date(2026, 8, 21),
+            status=ReportStatus.draft,
+            summary="内部草稿",
+        )
+    )
+    db.commit()
+
+    response = client.get("/api/v1/reports/latest")
+
+    assert response.status_code == 200
+    assert response.json() is None
 
 
 def test_fixed_test_invites_are_disabled_by_default(db, monkeypatch):

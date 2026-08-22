@@ -1,5 +1,8 @@
 """采集编排：去重、单一源失败隔离。"""
+from datetime import timedelta
+
 import app.services.collection as collection_mod
+from app.core.time import utcnow
 from app.models import CollectionRun, Source, SourceItem
 from app.models.enums import CredibilityLevel, SourceType
 
@@ -22,8 +25,13 @@ def _items(urls):
             "body": "body",
             "author": "a",
             "url": u,
-            "published_at": None,
-            "raw": {"title": f"title {i}", "link": u, "summary": "body", "published": None},
+            "published_at": utcnow(),
+            "raw": {
+                "title": f"title {i}",
+                "link": u,
+                "summary": "body",
+                "published": utcnow().isoformat(),
+            },
         }
         for i, u in enumerate(urls)
     ]
@@ -92,3 +100,22 @@ def test_x_source_returns_empty(db, monkeypatch):
     result = collection_mod.collect_source(db, source)
     assert result.items_count == 0
     assert db.query(SourceItem).count() == 0
+
+
+def test_collection_stores_only_items_published_within_48_hours(db, monkeypatch):
+    source = _make_source(db)
+    items = _items(
+        [
+            "https://e.com/fresh",
+            "https://e.com/old",
+            "https://e.com/no-date",
+        ]
+    )
+    items[1]["published_at"] = utcnow() - timedelta(hours=72)
+    items[2]["published_at"] = None
+    monkeypatch.setattr(collection_mod, "fetch_items", lambda st, u: items)
+
+    result = collection_mod.collect_source(db, source)
+
+    assert result.items_count == 1
+    assert db.query(SourceItem).one().url == "https://e.com/fresh"
