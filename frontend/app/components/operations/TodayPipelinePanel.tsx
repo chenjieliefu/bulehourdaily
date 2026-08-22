@@ -10,7 +10,7 @@ type PipelineData = {
   review: ReviewPayload;
 };
 
-export default function TodayPipelinePanel() {
+export default function TodayPipelinePanel({ refreshKey = 0 }: { refreshKey?: number }) {
   const [data, setData] = useState<PipelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export default function TodayPipelinePanel() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   const failedSources = useMemo(
     () => data?.collection.sources.filter((source) => source.enabled && source.last_status === "failed") ?? [],

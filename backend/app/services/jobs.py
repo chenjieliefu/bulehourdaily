@@ -1,10 +1,16 @@
 """后台任务执行器：提交 + 轮询。任务状态持久化，可恢复查询。"""
 import threading
+from datetime import timedelta
+
+from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.core.time import utcnow
 from app.models import Job
 from app.models.enums import JobKind, JobStatus
+
+
+_STALE_JOB_AFTER = timedelta(minutes=10)
 
 
 def _run_job(job_id: int) -> None:
@@ -85,9 +91,47 @@ def start_job(kind: JobKind, context: dict | None = None) -> int:
         db.close()
 
 
+def _start_or_reuse_job(
+    db: Session,
+    kind: JobKind,
+    context: dict | None = None,
+) -> tuple[int, bool]:
+    """复用同类同上下文的活动任务，避免重复模型调用和并发写入。"""
+    normalized_context = context or None
+    stale_before = utcnow() - _STALE_JOB_AFTER
+    active_jobs = (
+        db.query(Job)
+        .filter(
+            Job.kind == kind,
+            Job.status.in_([JobStatus.pending, JobStatus.running]),
+        )
+        .order_by(Job.id.desc())
+        .all()
+    )
+    for active in active_jobs:
+        if (active.context or None) != normalized_context:
+            continue
+        if active.created_at >= stale_before:
+            return active.id, False
+        active.status = JobStatus.failed
+        active.error_message = "任务运行超过 10 分钟，已允许重新提交"
+        active.finished_at = utcnow()
+
+    job = Job(kind=kind, status=JobStatus.pending, context=normalized_context)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    return job.id, True
+
+
 def run_in_background(kind: JobKind, context: dict | None = None) -> int:
-    job_id = start_job(kind, context)
-    threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
+    db = SessionLocal()
+    try:
+        job_id, created = _start_or_reuse_job(db, kind, context)
+    finally:
+        db.close()
+    if created:
+        threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
     return job_id
 
 

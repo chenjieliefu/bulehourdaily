@@ -97,6 +97,14 @@ def generate_report(
     event_before: datetime | None = None,
 ) -> dict:
     target_date = report_date or datetime.now(_BJ).date()
+    existing_report = (
+        db.query(DailyReport)
+        .filter(DailyReport.report_date == target_date)
+        .first()
+    )
+    if existing_report is not None and existing_report.status == ReportStatus.published:
+        raise ValueError("当日日报已经发布，请先下架后再重新生成")
+
     published_topic_event_ids = {
         event_id
         for (event_id,) in db.query(TopicRecommendation.hot_event_id)
@@ -156,7 +164,7 @@ def generate_report(
     topics_by_event = {t.get("event_id"): t for t in data.get("topics", [])}
 
     today = target_date
-    report = db.query(DailyReport).filter(DailyReport.report_date == today).first()
+    report = existing_report
     if report is None:
         report = DailyReport(report_date=today, status=ReportStatus.draft)
         db.add(report)

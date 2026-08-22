@@ -48,6 +48,37 @@ def test_regenerate_same_day_overwrites(db, source_factory, item_factory):
     assert db.query(HotBrief).count() == 0  # 事件不足 3 个以上，速览为 0
 
 
+def test_published_report_cannot_be_overwritten(db, source_factory, item_factory):
+    src = source_factory()
+    for i in range(6):
+        item_factory(src, title=f"t{i}")
+    extract_events(db)
+
+    first = generate_report(db)
+    report = db.get(DailyReport, first["report_id"])
+    report.status = ReportStatus.published
+    db.commit()
+    original_topic_ids = [
+        row.id
+        for row in db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .order_by(TopicRecommendation.id)
+        .all()
+    ]
+
+    with pytest.raises(ValueError, match="已经发布"):
+        generate_report(db)
+
+    current_topic_ids = [
+        row.id
+        for row in db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .order_by(TopicRecommendation.id)
+        .all()
+    ]
+    assert current_topic_ids == original_topic_ids
+
+
 def test_generate_without_events_raises(db):
     with pytest.raises(ValueError):
         generate_report(db)

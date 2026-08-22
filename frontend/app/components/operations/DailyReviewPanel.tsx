@@ -28,7 +28,7 @@ type WithdrawalConfirmation =
   | { kind: "topic"; topic: ReviewTopic }
   | { kind: "topic_republish"; topic: ReviewTopic };
 
-export default function DailyReviewPanel() {
+export default function DailyReviewPanel({ onChanged }: { onChanged?: () => void } = {}) {
   const [data, setData] = useState<ReviewPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export default function DailyReviewPanel() {
 
   async function act(fn: () => Promise<unknown>): Promise<boolean> {
     setBusy(true); setError(null);
-    try { await fn(); await load(); return true; }
+    try { await fn(); await load(); onChanged?.(); return true; }
     catch (e) { setError(e instanceof Error ? e.message : "操作失败"); return false; }
     finally { setBusy(false); }
   }
