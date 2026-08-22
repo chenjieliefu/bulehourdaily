@@ -31,3 +31,22 @@ def test_upgrade_database_schema_applies_pending_migrations(tmp_path, monkeypatc
     upgrade_database_schema()
 
     assert "is_published" in _columns(database_path, "topic_recommendation")
+
+
+def test_upgrade_database_schema_adopts_unversioned_legacy_database(
+    tmp_path, monkeypatch,
+):
+    database_path = tmp_path / "legacy-database.db"
+    monkeypatch.setattr(settings, "database_url", f"sqlite:///{database_path}")
+    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    command.upgrade(config, "c61f8a2d7e04")
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("DROP TABLE alembic_version")
+    assert "is_published" not in _columns(database_path, "topic_recommendation")
+
+    upgrade_database_schema()
+
+    assert "is_published" in _columns(database_path, "topic_recommendation")
+    with sqlite3.connect(database_path) as connection:
+        version = connection.execute("SELECT version_num FROM alembic_version").fetchone()
+    assert version == ("e42f7c1d9a30",)
