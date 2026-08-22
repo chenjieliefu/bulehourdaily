@@ -20,6 +20,12 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  function resetForm() {
+    setEmail("");
+    setPassword("");
+    setError(null);
+  }
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -40,6 +46,7 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
     try {
       const response = await apiLogin(email, password);
       setAuthSession(response.token, response.user);
+      resetForm();
       onSuccess(response.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败");
@@ -49,7 +56,14 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
   }
 
   function requestClose() {
-    if (!busy) onClose();
+    if (busy) return;
+    resetForm();
+    onClose();
+  }
+
+  function requestRegister() {
+    resetForm();
+    onRegister();
   }
 
   return (
@@ -60,9 +74,6 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
       onCancel={(event) => {
         event.preventDefault();
         requestClose();
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) requestClose();
       }}
       className="m-auto w-[min(92vw,420px)] rounded-[24px] border border-steel bg-white p-0 text-cloud shadow-2xl backdrop:bg-slate-950/35 backdrop:backdrop-blur-sm"
     >
@@ -91,6 +102,7 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
               ref={emailRef}
               type="email"
               required
+              autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="input mt-1.5"
@@ -103,6 +115,7 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
               type="password"
               required
               maxLength={128}
+              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(sanitizePassword(event.target.value))}
               className="input mt-1.5"
@@ -123,7 +136,7 @@ export default function LoginDialog({ open, onClose, onSuccess, onRegister }: Lo
 
         <p className="mt-5 text-center text-sm text-fog">
           还没有账号？{" "}
-          <button type="button" onClick={onRegister} className="text-cyan hover:underline">
+          <button type="button" onClick={requestRegister} className="text-cyan hover:underline">
             立即注册
           </button>
         </p>

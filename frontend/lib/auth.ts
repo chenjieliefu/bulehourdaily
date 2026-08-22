@@ -56,8 +56,7 @@ function readSession(scope: AuthScope): AuthSession | null {
 
 function currentSession(scope?: AuthScope): AuthSession | null {
   if (scope) return readSession(scope);
-  const inferred = inferredScope();
-  return readSession(inferred) ?? (inferred === "user" ? readSession("operator") : null);
+  return readSession(inferredScope());
 }
 
 export function getToken(scope?: AuthScope): string | null {
