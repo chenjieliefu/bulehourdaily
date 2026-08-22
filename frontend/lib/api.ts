@@ -149,6 +149,16 @@ export type ProductFeedbackReceipt = {
 
 const BASE = "/api/v1";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -160,7 +170,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const res = await fetch(`${BASE}${path}`, { ...options, headers, cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.detail || `请求失败（${res.status}）`);
+    throw new ApiError(body?.detail || `请求失败（${res.status}）`, res.status);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -169,6 +179,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 // ---- 公开日报 ----
 export async function listReports(): Promise<ReportSummary[]> {
   return apiFetch<ReportSummary[]>("/reports");
+}
+export async function getLatestReport(): Promise<Report | null> {
+  return apiFetch<Report | null>("/reports/latest");
 }
 export async function getReport(id: number): Promise<Report> {
   return apiFetch<Report>(`/reports/${id}`);

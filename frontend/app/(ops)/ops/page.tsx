@@ -1,21 +1,22 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import OverviewPanel from "@/app/components/operations/OverviewPanel";
+import DailyReviewPanel from "@/app/components/operations/DailyReviewPanel";
+import TodayPipelinePanel from "@/app/components/operations/TodayPipelinePanel";
 import { OperationsPageHeader, OperationsSection } from "@/app/components/operations/OperationsPage";
 
-const ROUTES = {
-  overview: "/ops",
-  daily: "/ops/daily",
-  creators: "/ops/creators",
-  personalized: "/ops/personalized",
-  feedback: "/ops/product-feedback",
-};
-
 export default function OperationsOverviewPage() {
-  const router = useRouter();
-  return <>
-    <OperationsPageHeader eyebrow="Operations Overview" title="运营概览" description="先看今日异常和待办，再进入对应业务页面处理。" />
-    <OperationsSection><OverviewPanel onOpen={(key) => router.push(ROUTES[key])} /></OperationsSection>
-  </>;
+  return (
+    <>
+      <OperationsPageHeader
+        eyebrow="Daily Operations"
+        title="今日工作台"
+        description="从信息采集到正式发布，一页完成今天的日报运营。"
+        actions={<a href="/" target="_blank" rel="noopener noreferrer" className="rounded-full border border-steel bg-white px-4 py-2 text-xs text-fog hover:border-cyan hover:text-cyan">查看公开日报 ↗</a>}
+      />
+      <OperationsSection>
+        <div className="space-y-12">
+          <TodayPipelinePanel />
+          <DailyReviewPanel />
+        </div>
+      </OperationsSection>
+    </>
+  );
 }

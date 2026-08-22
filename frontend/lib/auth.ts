@@ -3,6 +3,7 @@ const TOKEN_KEY = "weilan_token";
 const USER_KEY = "weilan_user";
 const USER_SESSION_KEY = "weilan_user_session";
 const OPERATOR_SESSION_KEY = "weilan_operator_session";
+export const AUTH_CHANGE_EVENT = "weilan-auth-change";
 
 export type AuthUser = { id: number; email: string; is_operator: boolean };
 export type AuthScope = "user" | "operator";
@@ -53,12 +54,18 @@ function readSession(scope: AuthScope): AuthSession | null {
   return matchesScope ? { token, user } : null;
 }
 
-export function getToken(scope: AuthScope = inferredScope()): string | null {
-  return readSession(scope)?.token ?? null;
+function currentSession(scope?: AuthScope): AuthSession | null {
+  if (scope) return readSession(scope);
+  const inferred = inferredScope();
+  return readSession(inferred) ?? (inferred === "user" ? readSession("operator") : null);
 }
 
-export function getUser(scope: AuthScope = inferredScope()): AuthUser | null {
-  return readSession(scope)?.user ?? null;
+export function getToken(scope?: AuthScope): string | null {
+  return currentSession(scope)?.token ?? null;
+}
+
+export function getUser(scope?: AuthScope): AuthUser | null {
+  return currentSession(scope)?.user ?? null;
 }
 
 export function setAuthSession(token: string, user: AuthUser) {
@@ -66,6 +73,7 @@ export function setAuthSession(token: string, user: AuthUser) {
   localStorage.setItem(sessionKey(scope), JSON.stringify({ token, user } satisfies AuthSession));
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function clearAuth(scope: AuthScope = inferredScope()) {
@@ -73,6 +81,7 @@ export function clearAuth(scope: AuthScope = inferredScope()) {
   // 清理升级前旧格式，防止错误会话再次被兼容逻辑读回。
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function isLoggedIn(): boolean {

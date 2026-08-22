@@ -8,33 +8,14 @@ import { apiCurrentUser } from "@/lib/api";
 import { clearAuth, getToken, getUser, setAuthSession } from "@/lib/auth";
 
 const NAV = [
-  { label: "总览", items: [{ href: "/ops", label: "运营概览", icon: "◫" }] },
-  { label: "内容运营", items: [
-    { href: "/ops/daily", label: "今日日报", icon: "◉" },
-    { href: "/ops/events", label: "候选事件", icon: "⌁" },
+  { label: "日报运营", items: [
+    { href: "/ops", label: "今日工作台", icon: "◉" },
     { href: "/ops/reports", label: "日报记录", icon: "▤" },
-  ] },
-  { label: "个性化运营", items: [
-    { href: "/ops/personalized", label: "个性化内容", icon: "✦" },
-    { href: "/ops/deliveries", label: "邮件送达", icon: "✉" },
-  ] },
-  { label: "创作者运营", items: [
-    { href: "/ops/creators", label: "创作者", icon: "♙" },
-    { href: "/ops/subscriptions", label: "订阅管理", icon: "◇" },
-    { href: "/ops/invites", label: "邀请码", icon: "⌘" },
-  ] },
-  { label: "反馈", items: [
-    { href: "/ops/product-feedback", label: "产品反馈", icon: "□" },
-    { href: "/ops/publication-feedback", label: "发布反馈", icon: "↗" },
-  ] },
-  { label: "站点运营", items: [
-    { href: "/ops/site/product", label: "产品介绍", icon: "i" },
-    { href: "/ops/site/membership", label: "会员页面", icon: "♢" },
-  ] },
-  { label: "系统", items: [
     { href: "/ops/sources", label: "信息源", icon: "◎" },
-    { href: "/ops/collection", label: "采集状态", icon: "↻" },
-    { href: "/ops/jobs", label: "任务记录", icon: "≡" },
+  ] },
+  { label: "内测运营", items: [
+    { href: "/ops/users", label: "内测用户", icon: "♙" },
+    { href: "/ops/product-feedback", label: "用户反馈", icon: "□" },
   ] },
 ];
 
@@ -50,7 +31,7 @@ export default function OperationsShell({ children }: { children: React.ReactNod
     const cachedUser = getUser("operator");
     const token = getToken("operator");
     if (!cachedUser?.is_operator || !token) {
-      router.replace("/login");
+      router.replace("/?auth=login&next=%2Fops");
       return;
     }
 
@@ -64,7 +45,7 @@ export default function OperationsShell({ children }: { children: React.ReactNod
         setReady(true);
       } catch {
         clearAuth("operator");
-        if (!cancelled) router.replace("/login?reason=operator-session");
+        if (!cancelled) router.replace("/?auth=login&next=%2Fops");
       }
     }
     void verifyOperator();
@@ -78,7 +59,7 @@ export default function OperationsShell({ children }: { children: React.ReactNod
 
   function logout() {
     clearAuth("operator");
-    router.replace("/login");
+    router.replace("/?auth=login&next=%2Fops");
   }
 
   if (!ready) return <div className="flex min-h-screen items-center justify-center text-sm text-fog">正在验证运营身份…</div>;

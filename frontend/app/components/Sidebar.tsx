@@ -1,21 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearAuth, getUser, isLoggedIn } from "@/lib/auth";
+import { AUTH_CHANGE_EVENT, clearAuth, getUser, isLoggedIn, type AuthUser } from "@/lib/auth";
 import Brand from "@/app/components/Brand";
+import LoginDialog from "@/app/components/LoginDialog";
+import RegisterDialog from "@/app/components/RegisterDialog";
 
-type NavIconName = "membership" | "feedback" | "about";
+type NavIconName = "feedback" | "about";
 type NavItem = { href?: string; label: string; soon?: boolean; icon?: NavIconName };
+type AuthMode = "login" | "register" | null;
 
 // 上组：内容
 const TOP_GROUP: NavItem[] = [
-  { href: "/mine", label: "订阅日报" },
   { href: "/", label: "公开日报" },
-  { href: undefined, label: "邮箱日报", soon: true },
   { href: "/archive", label: "往期归档" },
-  { href: undefined, label: "我的收藏", soon: true },
 ];
 
 const OPERATOR_GROUP: NavItem[] = [
@@ -23,10 +23,8 @@ const OPERATOR_GROUP: NavItem[] = [
   { href: "/", label: "公开日报" },
 ];
 
-// 下组：账户与商业（展示顺序从上到下）
+// 下组：当前最小产品闭环所需的服务入口
 const BOTTOM_GROUP: NavItem[] = [
-  { href: "/review", label: "运营工作台" },
-  { href: "/upgrade", label: "升级会员", icon: "membership" },
   { href: "/feedback", label: "意见反馈", icon: "feedback" },
   { href: "/landing", label: "产品介绍", icon: "about" },
 ];
@@ -34,16 +32,30 @@ const BOTTOM_GROUP: NavItem[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loggedIn, setLoggedIn] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [isOperator, setIsOperator] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>(() => {
+    const requestedMode = searchParams.get("auth");
+    return requestedMode === "register" ? "register" : requestedMode === "login" ? "login" : null;
+  });
+  const [authDestination, setAuthDestination] = useState<string | null>(() => {
+    const next = searchParams.get("next");
+    return next?.startsWith("/") && !next.startsWith("//") ? next : null;
+  });
 
   useEffect(() => {
+    function syncAuth() {
+      setLoggedIn(isLoggedIn());
+      setEmail(getUser()?.email ?? null);
+      setIsOperator(getUser()?.is_operator ?? false);
+    }
+
     // 登录态只存在于浏览器 localStorage，挂载后同步一次（避免服务端渲染水合不一致）
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoggedIn(isLoggedIn());
-    setEmail(getUser()?.email ?? null);
-    setIsOperator(getUser()?.is_operator ?? false);
+    syncAuth();
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
+    return () => window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
   }, [pathname]);
 
   const isActive = (href?: string) =>
@@ -56,6 +68,36 @@ export default function Sidebar() {
     setLoggedIn(false);
     setEmail(null);
     router.push("/");
+  }
+
+  function openAuth(mode: Exclude<AuthMode, null>, destination: string | null = null) {
+    setAuthDestination(destination);
+    setAuthMode(mode);
+  }
+
+  function clearAuthQuery() {
+    if (!searchParams.has("auth") && !searchParams.has("next")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("auth");
+    params.delete("next");
+    router.replace(params.size ? `${pathname}?${params}` : pathname);
+  }
+
+  function closeAuth() {
+    setAuthMode(null);
+    setAuthDestination(null);
+    clearAuthQuery();
+  }
+
+  function finishAuth(user: AuthUser) {
+    const destination = user.is_operator ? "/ops" : authDestination;
+    setAuthMode(null);
+    setAuthDestination(null);
+    setLoggedIn(true);
+    setEmail(user.email);
+    setIsOperator(user.is_operator);
+    if (destination) router.push(destination);
+    else clearAuthQuery();
   }
 
   const itemCls = (item: NavItem) =>
@@ -78,7 +120,17 @@ export default function Sidebar() {
       <nav aria-label="内容导航" className="flex gap-1 overflow-x-auto px-3 py-2 lg:flex-col lg:gap-0.5 lg:px-4 lg:py-5">
         {contentItems.map((item) => (
           item.href ? (
-            <Link key={item.label} href={item.href} className={itemCls(item)}>
+            <Link
+              key={item.label}
+              href={item.href}
+              className={itemCls(item)}
+              onClick={(event) => {
+                if (item.href === "/archive" && !loggedIn) {
+                  event.preventDefault();
+                  openAuth("login", "/archive");
+                }
+              }}
+            >
               <span className="inline-flex items-center gap-3">
                 <span className={`h-1.5 w-1.5 rounded-full ${isActive(item.href) ? "bg-orchid" : "bg-periwinkle/60"}`} />
                 {item.label}
@@ -94,7 +146,7 @@ export default function Sidebar() {
 
       {/* 下组：账户与商业 */}
       <nav aria-label="账户与服务" className="mt-auto hidden gap-1 overflow-x-auto border-t border-steel/70 px-3 py-3 lg:flex lg:flex-col lg:gap-0.5 lg:px-4 lg:py-4">
-        {(isOperator ? [] : BOTTOM_GROUP.filter((item) => item.href !== "/review")).map((item) => (
+        {(isOperator ? [] : BOTTOM_GROUP).map((item) => (
           item.href ? (
             <Link key={item.label} href={item.href} className={itemCls(item)}>
               <span className="inline-flex items-center gap-3">
@@ -124,13 +176,14 @@ export default function Sidebar() {
             </span>
           </button>
         ) : (
-          <Link
-            href="/login"
+          <button
+            type="button"
+            onClick={() => openAuth("login")}
             className="flex w-full items-center gap-3 rounded-card border border-steel bg-white/80 px-3 py-2.5 shadow-sm transition-all hover:border-cyan/40 hover:bg-white"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-steel text-sm text-silver">?</span>
             <span className="text-sm text-ash">登录 / 注册</span>
-          </Link>
+          </button>
         )}
 
         {loggedIn && (
@@ -142,20 +195,24 @@ export default function Sidebar() {
           </button>
         )}
       </div>
+
+      <LoginDialog
+        open={authMode === "login"}
+        onClose={closeAuth}
+        onSuccess={finishAuth}
+        onRegister={() => setAuthMode("register")}
+      />
+      <RegisterDialog
+        open={authMode === "register"}
+        onClose={closeAuth}
+        onSuccess={finishAuth}
+        onLogin={() => setAuthMode("login")}
+      />
     </aside>
   );
 }
 
 function NavIcon({ name }: { name: NavIconName }) {
-  if (name === "membership") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M4 8.5 7.5 12 12 5l4.5 7L20 8.5 18.5 18h-13L4 8.5Z" strokeLinejoin="round" />
-        <path d="M7 21h10" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
   if (name === "feedback") {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">

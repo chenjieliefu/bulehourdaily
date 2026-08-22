@@ -1,19 +1,32 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import ReportView from "@/app/components/ReportView";
-import { getReport, listReports, type Report, type ReportSummary } from "@/lib/api";
+import LoginDialog from "@/app/components/LoginDialog";
+import RegisterDialog from "@/app/components/RegisterDialog";
+import { ApiError, getReport, listReports, type Report, type ReportSummary } from "@/lib/api";
+import { clearAuth, getUser, isLoggedIn } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 
 export default function ArchivePage() {
+  const router = useRouter();
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "register" | null>(
+    () => typeof window !== "undefined" && !isLoggedIn() ? "login" : null,
+  );
+  const [accessVersion, setAccessVersion] = useState(0);
 
   useEffect(() => {
+    if (!isLoggedIn()) {
+      return;
+    }
+
     (async () => {
       try {
         const allReports = await listReports();
@@ -26,12 +39,17 @@ export default function ArchivePage() {
         if (archivedReports[0]) setDetailLoading(true);
         setSelectedId(archivedReports[0]?.id ?? null);
       } catch (e) {
+        if (e instanceof ApiError && e.status === 401) {
+          clearAuth(getUser()?.is_operator ? "operator" : "user");
+          setAuthMode("login");
+          return;
+        }
         setError(e instanceof Error ? e.message : "加载失败");
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [accessVersion]);
 
   useEffect(() => {
     if (selectedId === null) return;
@@ -73,6 +91,33 @@ export default function ArchivePage() {
 
   return (
     <div className="mx-auto max-w-[1400px] pb-8">
+      <LoginDialog
+        open={authMode === "login"}
+        onClose={() => {
+          setAuthMode(null);
+          router.replace("/");
+        }}
+        onSuccess={() => {
+          setAuthMode(null);
+          setLoading(true);
+          setAccessVersion((version) => version + 1);
+        }}
+        onRegister={() => setAuthMode("register")}
+      />
+      <RegisterDialog
+        open={authMode === "register"}
+        onClose={() => {
+          setAuthMode(null);
+          router.replace("/");
+        }}
+        onSuccess={() => {
+          setAuthMode(null);
+          setLoading(true);
+          setAccessVersion((version) => version + 1);
+        }}
+        onLogin={() => setAuthMode("login")}
+      />
+
       <header className="flex flex-col gap-3 border-b border-steel/80 pb-6 pt-8 sm:flex-row sm:items-end sm:justify-between lg:pt-10">
         <div>
           <p className="eyebrow">Archive</p>

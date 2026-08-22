@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReport, listReports, type Report } from "@/lib/api";
+import { getLatestReport, type Report } from "@/lib/api";
 import ReportView from "@/app/components/ReportView";
 
 export default function DailyPage() {
@@ -12,9 +12,7 @@ export default function DailyPage() {
   useEffect(() => {
     (async () => {
       try {
-        const reports = await listReports();
-        if (reports.length > 0) setReport(await getReport(reports[0].id));
-        else setReport(null);
+        setReport(await getLatestReport());
       } catch (e) {
         setError(e instanceof Error ? e.message : "加载失败");
       } finally {
@@ -24,7 +22,7 @@ export default function DailyPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-[1040px]">
+    <div className="mx-auto max-w-[1180px]">
       <header className="flex flex-col gap-4 border-b border-steel/80 pb-6 pt-8 sm:flex-row sm:items-end sm:justify-between lg:pt-10">
         <div>
           <p className="eyebrow">Public Daily · 08:00</p>
