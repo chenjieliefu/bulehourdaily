@@ -33,6 +33,7 @@ from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.services.collection import collect_all
 from app.services.database_backup import DatabaseBackupError, backup_database, restore_database
+from app.services.database_migration import upgrade_database_schema
 from app.services.seed import (
     seed_configured_invite_codes,
     seed_operator_account,
@@ -89,10 +90,10 @@ def _scheduled_database_backup():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    restored = restore_database()
-    if restored:
-        # Engine 通常尚未建立连接；显式释放可避免测试或特殊启动器提前建连。
-        engine.dispose()
+    restore_database()
+    # 恢复发生在结构升级之前；释放旧连接，确保迁移命中刚恢复的数据库文件。
+    engine.dispose()
+    upgrade_database_schema()
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
