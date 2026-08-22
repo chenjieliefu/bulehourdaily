@@ -92,7 +92,7 @@ export default function OperationsShell({ children }: { children: React.ReactNod
           ))}
         </nav>
         <div className="border-t border-steel px-4 py-4 lg:sticky lg:bottom-0 lg:bg-[#eef4f6]">
-          <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-fog hover:bg-white/60 hover:text-cloud"><span>查看公开站点</span><span>↗</span></a>
+          <Link href="/" className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-fog hover:bg-white/60 hover:text-cloud"><span>查看公开站点</span><span>→</span></Link>
           <div className="mt-2 rounded-xl border border-steel bg-white/70 px-3 py-3">
             <p className="truncate text-xs text-cloud">{email}</p>
             <button onClick={logout} className="mt-2 text-[11px] text-fog hover:text-red-600">退出运营账号</button>
