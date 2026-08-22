@@ -33,6 +33,7 @@ class ReviewTopic(BaseModel):
     hot_event_id: int
     credibility_label: CredibilityLabel | None = None
     reviewed: bool
+    is_published: bool
     evidence: list[EvidenceItem] = []
 
 

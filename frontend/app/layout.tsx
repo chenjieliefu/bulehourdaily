@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "微蓝日报 · BLUE HOUR DAILY",
   description: "在世界醒来之前，看见下一刻。See what's next before the world wakes.",
   icons: {
-    icon: "/blue-hour-mark.svg",
+    icon: "/icon.svg",
   },
 };
 

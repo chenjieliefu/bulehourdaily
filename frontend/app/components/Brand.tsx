@@ -9,7 +9,7 @@ export default function Brand({ compact = false, className = "" }: BrandProps) {
   return (
     <span className={`inline-flex items-center ${compact ? "gap-2.5" : "gap-3"} ${className}`}>
       <Image
-        src="/blue-hour-mark.svg"
+        src="/icon.svg"
         alt=""
         width={compact ? 38 : 48}
         height={compact ? 38 : 48}

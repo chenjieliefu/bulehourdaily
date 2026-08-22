@@ -128,6 +128,13 @@ def run_daily_publication(db: Session, *, report_date: date | None = None) -> di
     if issues:
         raise DailyPublicationQualityError("；".join(issues))
 
+    topics = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .all()
+    )
+    for topic in topics:
+        topic.is_published = True
     report.status = ReportStatus.published
     report.published_at = utcnow()
     db.commit()

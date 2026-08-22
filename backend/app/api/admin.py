@@ -199,7 +199,7 @@ def review(db: Session = Depends(get_db)):
             angle=t.angle, hook=t.hook, structure=t.structure, visual=t.visual,
             time_window=t.time_window, order_index=t.order_index, hot_event_id=t.hot_event_id,
             credibility_label=events[t.hot_event_id].credibility_label if t.hot_event_id in events else None,
-            reviewed=t.reviewed,
+            reviewed=t.reviewed, is_published=t.is_published,
             evidence=evidence_map.get(t.hot_event_id, []),
         )
         for t in topics
@@ -245,11 +245,29 @@ def approve_topic(topic_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/topics/{topic_id}", status_code=204)
-def reject_topic(topic_id: int, db: Session = Depends(get_db)):
+def remove_topic(topic_id: int, db: Session = Depends(get_db)):
     try:
-        admin_svc.reject_topic(db, topic_id)
+        admin_svc.remove_topic(db, topic_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/topics/{topic_id}/unpublish")
+def unpublish_topic(topic_id: int, db: Session = Depends(get_db)):
+    try:
+        admin_svc.unpublish_topic(db, topic_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
+
+
+@router.post("/topics/{topic_id}/republish")
+def republish_topic(topic_id: int, db: Session = Depends(get_db)):
+    try:
+        admin_svc.republish_topic(db, topic_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
 
 
 @router.post("/topics")
@@ -265,6 +283,15 @@ def add_topic(payload: AddTopicRequest, db: Session = Depends(get_db)):
 def publish(db: Session = Depends(get_db)):
     try:
         admin_svc.publish_report(db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
+
+
+@router.post("/report/unpublish")
+def unpublish(db: Session = Depends(get_db)):
+    try:
+        admin_svc.unpublish_report(db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True}
@@ -303,5 +330,5 @@ def _topic_read(db: Session, topic_id: int) -> ReviewTopic:
         angle=t.angle, hook=t.hook, structure=t.structure, visual=t.visual,
         time_window=t.time_window, order_index=t.order_index, hot_event_id=t.hot_event_id,
         credibility_label=event.credibility_label if event else None,
-        reviewed=t.reviewed, evidence=evidence,
+        reviewed=t.reviewed, is_published=t.is_published, evidence=evidence,
     )

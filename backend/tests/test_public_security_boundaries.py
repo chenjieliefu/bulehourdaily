@@ -186,6 +186,27 @@ def test_latest_report_returns_null_when_nothing_is_published(db, client):
     assert response.json() is None
 
 
+def test_latest_report_falls_back_when_newest_report_is_draft(db, client):
+    previous = DailyReport(
+        report_date=date(2026, 8, 20),
+        status=ReportStatus.published,
+        summary="上一期日报",
+        published_at=datetime.utcnow(),
+    )
+    unpublished = DailyReport(
+        report_date=date(2026, 8, 21),
+        status=ReportStatus.draft,
+        summary="已下架日报",
+    )
+    db.add_all([previous, unpublished])
+    db.commit()
+
+    response = client.get("/api/v1/reports/latest")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == previous.id
+
+
 def test_fixed_test_invites_are_disabled_by_default(db, monkeypatch):
     monkeypatch.setattr(settings, "seed_test_invite_codes", False)
 

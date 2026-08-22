@@ -277,6 +277,7 @@ export type ReviewTopic = {
   hot_event_id: number;
   credibility_label: CredibilityLabel | null;
   reviewed: boolean;
+  is_published: boolean;
   evidence: EvidenceItem[];
 };
 
@@ -533,8 +534,14 @@ export async function updateProductFeedbackOperations(
 export async function approveTopic(id: number) {
   return apiFetch<{ ok: boolean }>(`/admin/topics/${id}/approve`, { method: "POST" });
 }
-export async function rejectTopic(id: number) {
+export async function removeTopic(id: number) {
   return apiFetch<void>(`/admin/topics/${id}`, { method: "DELETE" });
+}
+export async function unpublishTopic(id: number) {
+  return apiFetch<{ ok: boolean }>(`/admin/topics/${id}/unpublish`, { method: "POST" });
+}
+export async function republishTopic(id: number) {
+  return apiFetch<{ ok: boolean }>(`/admin/topics/${id}/republish`, { method: "POST" });
 }
 export async function editTopic(id: number, fields: Record<string, string>) {
   return apiFetch<ReviewTopic>(`/admin/topics/${id}`, { method: "PUT", body: JSON.stringify(fields) });
@@ -544,6 +551,9 @@ export async function addTopicFromEvent(eventId: number) {
 }
 export async function publishReport() {
   return apiFetch<{ ok: boolean }>(`/admin/report/publish`, { method: "POST" });
+}
+export async function unpublishReport() {
+  return apiFetch<{ ok: boolean }>(`/admin/report/unpublish`, { method: "POST" });
 }
 export async function createInviteCodes(count: number): Promise<InviteCode[]> {
   return apiFetch<InviteCode[]>(`/admin/invite-codes`, { method: "POST", body: JSON.stringify({ count }) });

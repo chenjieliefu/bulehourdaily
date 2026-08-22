@@ -438,20 +438,32 @@ def _renumber(db: Session, report_id: int) -> None:
         t.order_index = i
 
 
+def _ensure_topic_editable(db: Session, topic: TopicRecommendation) -> None:
+    report = db.get(DailyReport, topic.report_id)
+    if (
+        report is not None
+        and report.status == ReportStatus.published
+        and topic.is_published
+    ):
+        raise ValueError("已上架主题不能直接修改，请先下架主题")
+
+
 def approve_topic(db: Session, topic_id: int) -> TopicRecommendation:
     topic = db.get(TopicRecommendation, topic_id)
     if topic is None:
         raise ValueError("选题不存在")
+    # 复核只确认当前内容，不修改公开内容；已上架主题可以保持在线完成复核。
     topic.reviewed = True
     db.commit()
     db.refresh(topic)
     return topic
 
 
-def reject_topic(db: Session, topic_id: int) -> None:
+def remove_topic(db: Session, topic_id: int) -> None:
     topic = db.get(TopicRecommendation, topic_id)
     if topic is None:
         raise ValueError("选题不存在")
+    _ensure_topic_editable(db, topic)
     report_id = topic.report_id
     db.delete(topic)
     db.flush()
@@ -459,13 +471,64 @@ def reject_topic(db: Session, topic_id: int) -> None:
     db.commit()
 
 
+def unpublish_topic(db: Session, topic_id: int) -> TopicRecommendation:
+    """只下架已发布日报中的一个选题，保留日报和选题记录。"""
+    topic = db.get(TopicRecommendation, topic_id)
+    if topic is None:
+        raise ValueError("选题不存在")
+    report = db.get(DailyReport, topic.report_id)
+    if report is None or report.status != ReportStatus.published:
+        raise ValueError("只能下架已发布日报中的选题")
+    if not topic.is_published:
+        raise ValueError("该选题已下架")
+
+    published_count = (
+        db.query(TopicRecommendation)
+        .filter(
+            TopicRecommendation.report_id == report.id,
+            TopicRecommendation.is_published.is_(True),
+        )
+        .count()
+    )
+    if published_count <= 1:
+        raise ValueError("这是日报中最后一个已上架选题，请下架整份日报")
+
+    topic.is_published = False
+    topic.reviewed = False
+    db.commit()
+    db.refresh(topic)
+    return topic
+
+
 def edit_topic(db: Session, topic_id: int, data: dict) -> TopicRecommendation:
     topic = db.get(TopicRecommendation, topic_id)
     if topic is None:
         raise ValueError("选题不存在")
+    _ensure_topic_editable(db, topic)
     for key, value in data.items():
         if value is not None:
             setattr(topic, key, str(value)[:3000])
+    if data:
+        topic.reviewed = False
+    db.commit()
+    db.refresh(topic)
+    return topic
+
+
+def republish_topic(db: Session, topic_id: int) -> TopicRecommendation:
+    """将已下架且复核通过的选题重新上架。"""
+    topic = db.get(TopicRecommendation, topic_id)
+    if topic is None:
+        raise ValueError("选题不存在")
+    report = db.get(DailyReport, topic.report_id)
+    if report is None or report.status != ReportStatus.published:
+        raise ValueError("只能重新上架已发布日报中的主题")
+    if topic.is_published:
+        raise ValueError("该主题已上架")
+    if not topic.reviewed:
+        raise ValueError("该主题尚未通过复核，不能重新上架")
+
+    topic.is_published = True
     db.commit()
     db.refresh(topic)
     return topic
@@ -494,6 +557,8 @@ def add_topic_from_event(db: Session, event_id: int) -> TopicRecommendation:
         report = DailyReport(report_date=_today(), status=ReportStatus.draft)
         db.add(report)
         db.flush()
+    elif report.status == ReportStatus.published:
+        raise ValueError("日报已发布，请先下架再补充选题")
 
     event_text = (
         f"id={event.id} | 事件时间={event.first_seen_at} | 可信度={event.credibility_label.value} | "
@@ -508,7 +573,7 @@ def add_topic_from_event(db: Session, event_id: int) -> TopicRecommendation:
         db.query(TopicRecommendation).filter(TopicRecommendation.report_id == report.id).count()
     )
     if existing_count >= 3:
-        raise ValueError("最多 3 个主选题，请先拒绝一个再补充")
+        raise ValueError("最多 3 个主选题，请先移除一个再补充")
 
     reason = str(data.get("publish_reason") or "趁热度最高").strip()
     time_window = f"建议 {_deadline_str(event.first_seen_at)} 前发布，{reason}"
@@ -539,6 +604,13 @@ def publish_report(db: Session) -> DailyReport:
     report = db.query(DailyReport).filter(DailyReport.report_date == _today()).first()
     if report is None:
         raise ValueError("今日日报不存在，请先生成")
+    topic_count = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .count()
+    )
+    if topic_count == 0:
+        raise ValueError("至少保留 1 个主选题才能发布")
     unreviewed = (
         db.query(TopicRecommendation)
         .filter(TopicRecommendation.report_id == report.id, TopicRecommendation.reviewed.is_(False))
@@ -547,9 +619,39 @@ def publish_report(db: Session) -> DailyReport:
     if unreviewed > 0:
         raise ValueError(f"还有 {unreviewed} 个选题未质检，不能发布")
     if report.status != ReportStatus.published:
+        topics = (
+            db.query(TopicRecommendation)
+            .filter(TopicRecommendation.report_id == report.id)
+            .all()
+        )
+        for topic in topics:
+            topic.is_published = True
         report.status = ReportStatus.published
         report.published_at = utcnow()
         db.commit()
+    return report
+
+
+def unpublish_report(db: Session) -> DailyReport:
+    """下架当日公开日报，保留内容并强制重新质检。"""
+    report = db.query(DailyReport).filter(DailyReport.report_date == _today()).first()
+    if report is None:
+        raise ValueError("今日日报不存在")
+    if report.status != ReportStatus.published:
+        raise ValueError("今日日报尚未发布")
+
+    report.status = ReportStatus.draft
+    report.published_at = None
+    topics = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .all()
+    )
+    for topic in topics:
+        topic.reviewed = False
+        topic.is_published = False
+    db.commit()
+    db.refresh(report)
     return report
 
 

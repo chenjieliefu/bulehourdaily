@@ -85,10 +85,17 @@ def test_valid_one_topic_report_is_automatically_published(
 
     db.refresh(report)
     db.refresh(old_report)
+    topic = (
+        db.query(TopicRecommendation)
+        .filter(TopicRecommendation.report_id == report.id)
+        .one()
+    )
     assert result["status"] == "published"
     assert result["topics"] == 1
     assert report.status == ReportStatus.published
     assert report.published_at is not None
+    assert topic.is_published is True
+    assert topic.reviewed is False
     assert old_report.status == ReportStatus.published
 
 

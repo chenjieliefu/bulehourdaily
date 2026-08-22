@@ -75,7 +75,10 @@ def _evidence_for_events(db: Session, event_ids: list[int]) -> dict[int, list[Ev
 def _report_detail(db: Session, report: DailyReport) -> ReportDetail:
     topics = (
         db.query(TopicRecommendation)
-        .filter(TopicRecommendation.report_id == report.id)
+        .filter(
+            TopicRecommendation.report_id == report.id,
+            TopicRecommendation.is_published.is_(True),
+        )
         .order_by(TopicRecommendation.order_index)
         .all()
     )
@@ -102,13 +105,13 @@ def _report_detail(db: Session, report: DailyReport) -> ReportDetail:
             structure=t.structure,
             visual=t.visual,
             time_window=t.time_window,
-            order_index=t.order_index,
+            order_index=index,
             hot_event_id=t.hot_event_id,
             credibility_label=events[t.hot_event_id].credibility_label if t.hot_event_id in events else None,
             event_published_at=events[t.hot_event_id].first_seen_at if t.hot_event_id in events else None,
             evidence=evidence_map.get(t.hot_event_id, []),
         )
-        for t in topics
+        for index, t in enumerate(topics, start=1)
     ]
     brief_reads = [
         BriefRead(
