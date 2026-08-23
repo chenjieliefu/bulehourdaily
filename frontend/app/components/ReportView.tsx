@@ -36,7 +36,7 @@ export default function ReportView({ report }: { report: Report }) {
           </h2>
           <p className={styles.summary}>{report.summary || "今日重点已经整理完毕。"}</p>
           <div className={styles.metaRow}>
-            <span><i className={styles.liveDot} /> 已人工质检</span>
+            <span><i className={styles.liveDot} /> 今日精选</span>
             <span>{report.briefs.length} 条速览</span>
             <span>更新于 {fmtTime(report.updated_at)}</span>
           </div>
