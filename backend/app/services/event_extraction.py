@@ -124,8 +124,13 @@ def _clamp_score(value) -> int:
         return 1
 
 
-def _has_unsupported_scale_claim(raw: dict, items: list[SourceItem]) -> bool:
-    generated = f"{raw.get('title') or ''} {raw.get('summary') or ''}".lower()
+def has_unsupported_scale_claim(
+    title: object,
+    summary: object,
+    items: list[SourceItem],
+) -> bool:
+    """判断标题或摘要是否把原始证据扩大为未经支持的群体现象。"""
+    generated = f"{title or ''} {summary or ''}".lower()
     evidence = " ".join(f"{item.title} {item.body or ''}" for item in items).lower()
     return any(
         any(marker in generated for marker in generated_markers)
@@ -180,7 +185,7 @@ def extract_events(
         ev_items = [items_by_id[x] for x in evidence_ids]
         title = str(raw.get("title") or "").strip()
         summary = str(raw.get("summary") or "").strip()
-        if not title or not summary or _has_unsupported_scale_claim(raw, ev_items):
+        if not title or not summary or has_unsupported_scale_claim(title, summary, ev_items):
             rejected += 1
             continue
         if settings.app_env == "prod" and "[模拟]" in f"{title} {summary}":

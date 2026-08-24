@@ -5,6 +5,7 @@ import pytest
 
 from app.models import (
     CreatorProfile,
+    HotEvent,
     InviteCode,
     MailDelivery,
     PersonalizedReport,
@@ -137,6 +138,75 @@ def test_invalid_model_result_does_not_consume_trial(db, source_factory, item_fa
     )
 
     with pytest.raises(personalization.PersonalizedQualityError):
+        generate_personalized(db, user.id)
+    assert db.query(PersonalizedReport).count() == 0
+
+
+def test_existing_event_with_unsupported_scale_claim_is_not_recommended(
+    db, source_factory, item_factory
+):
+    user = _user(db)
+    _profile(db, user)
+    source = source_factory()
+    item_factory(
+        source,
+        title="'AI refuser' quit her dream job, and hopes others follow",
+    )
+    for i in range(5):
+        item_factory(source, title=f"safe-{i}")
+    extract_events(db)
+    bad_event = db.query(HotEvent).order_by(HotEvent.id).first()
+    bad_event.title = "AI 从业者辞职潮引关注"
+    db.commit()
+
+    result = generate_personalized(db, user.id)
+    topics = (
+        db.query(PersonalizedTopic)
+        .filter(PersonalizedTopic.report_id == result["report_id"])
+        .all()
+    )
+
+    assert result["topics"] == 2
+    assert all(topic.hot_event_id != bad_event.id for topic in topics)
+
+
+def test_personalized_rewrite_cannot_expand_single_case_into_wave(
+    db, source_factory, item_factory, monkeypatch
+):
+    user = _user(db)
+    _profile(db, user)
+    source = source_factory()
+    item_factory(
+        source,
+        title="'AI refuser' quit her dream job, and hopes others follow",
+    )
+    extract_events(db)
+    event = db.query(HotEvent).one()
+    monkeypatch.setattr(personalization.llm, "is_available", lambda: True)
+    monkeypatch.setattr(
+        personalization.llm,
+        "complete_json",
+        lambda *_args, **_kwargs: {
+            "summary": "今日推荐",
+            "reason": "适合你的观众",
+            "topics": [
+                {
+                    "event_id": event.id,
+                    "title": "AI 从业者辞职潮",
+                    "what_happened": "一位 AI 从业者辞去工作。",
+                    "why_now": "值得关注",
+                    "angle": "个人选择",
+                    "hook": "她为什么辞职？",
+                    "structure": "三段式",
+                    "visual": "新闻截图",
+                    "publish_reason": "仍有讨论价值",
+                    "recommendation_reason": "适合职场观众",
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(personalization.PersonalizedQualityError, match="扩大了原始证据范围"):
         generate_personalized(db, user.id)
     assert db.query(PersonalizedReport).count() == 0
 

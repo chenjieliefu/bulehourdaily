@@ -13,9 +13,11 @@ from app.models import (
     HotEvent,
     PersonalizedReport,
     PersonalizedTopic,
+    SourceItem,
 )
 from app.models.enums import EventStatus
 from . import llm
+from .event_extraction import has_unsupported_scale_claim
 from .report_generation import _deadline_str, _hours_ago
 from .subscriptions import has_active_subscription
 
@@ -90,6 +92,22 @@ def _contains_forbidden_marker(value: object) -> bool:
     return any(marker in text for marker in _FORBIDDEN_MARKERS)
 
 
+def _evidence_items_by_event(
+    db: Session,
+    event_ids: set[int],
+) -> dict[int, list[SourceItem]]:
+    result: dict[int, list[SourceItem]] = {}
+    if not event_ids:
+        return result
+    for evidence in (
+        db.query(EventEvidence)
+        .filter(EventEvidence.hot_event_id.in_(event_ids))
+        .all()
+    ):
+        result.setdefault(evidence.hot_event_id, []).append(evidence.source_item)
+    return result
+
+
 def _validated_topics(db: Session, data: dict, candidates: list[HotEvent]) -> list[dict]:
     """在写库和占用体验次数之前校验模型结果。"""
     issues: list[str] = []
@@ -104,6 +122,7 @@ def _validated_topics(db: Session, data: dict, candidates: list[HotEvent]) -> li
     if not isinstance(raw_topics, list):
         raw_topics = []
     candidate_ids = {event.id for event in candidates}
+    evidence_items = _evidence_items_by_event(db, candidate_ids)
     topics: list[dict] = []
     seen_event_ids: set[int] = set()
     for raw in raw_topics:
@@ -137,6 +156,12 @@ def _validated_topics(db: Session, data: dict, candidates: list[HotEvent]) -> li
             issues.append(f"第 {index} 个选题缺少字段：{', '.join(missing)}")
         if topic.get("event_id") not in evidence_event_ids:
             issues.append(f"第 {index} 个选题没有原始证据")
+        elif has_unsupported_scale_claim(
+            topic.get("title"),
+            topic.get("what_happened"),
+            evidence_items.get(topic["event_id"], []),
+        ):
+            issues.append(f"第 {index} 个选题扩大了原始证据范围")
 
     if settings.app_env == "prod":
         values = [summary, reason]
@@ -178,6 +203,17 @@ def generate_personalized(db: Session, user_id: int) -> dict:
         .limit(15)
         .all()
     )
+    event_ids = {event.id for event in events}
+    evidence_items = _evidence_items_by_event(db, event_ids)
+    events = [
+        event
+        for event in events
+        if not has_unsupported_scale_claim(
+            event.title,
+            event.summary,
+            evidence_items.get(event.id, []),
+        )
+    ]
     if not events:
         raise ValueError("没有候选热点事件，请稍后再试")
 
