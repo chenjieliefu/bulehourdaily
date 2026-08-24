@@ -20,6 +20,10 @@ _UNSUPPORTED_SCALE_RULES = (
     (("大批", "大规模"), ("大批", "大规模", "many", "multiple", "mass ", "large-scale", "large scale")),
     (("集体", "纷纷"), ("集体", "纷纷", "collective", "as a group", "many", "multiple")),
     (("激增", "暴增"), ("激增", "暴增", "surge", "spike", "soar", "jump sharply", "sharp increase")),
+    (
+        ("热议", "吵翻", "刷屏", "热搜", "全网", "广泛关注", "引发关注"),
+        ("热议", "吵翻", "刷屏", "热搜", "全网", "广泛关注", "引发关注", "debate", "discussion", "viral", "trending", "controversy", "sparks"),
+    ),
 )
 
 

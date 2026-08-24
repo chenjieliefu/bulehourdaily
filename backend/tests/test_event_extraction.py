@@ -184,6 +184,36 @@ def test_extract_rejects_unsupported_resignation_wave_claim(
     assert db.query(HotEvent).count() == 0
 
 
+def test_extract_rejects_unsupported_popularity_claim(
+    db, source_factory, item_factory, monkeypatch
+):
+    source = source_factory()
+    item = item_factory(source, title="The search for consciousness inside AI")
+    monkeypatch.setattr(event_extraction.llm, "is_available", lambda: True)
+    monkeypatch.setattr(
+        event_extraction.llm,
+        "complete_json",
+        lambda *_args, **_kwargs: {
+            "events": [
+                {
+                    "title": "AI 意识探索引发热议",
+                    "summary": "全网开始讨论 AI 是否拥有意识。",
+                    "evidence_item_ids": [item.id],
+                    "relevance_score": 4,
+                    "actionability_score": 3,
+                    "reason": "适合科普",
+                }
+            ]
+        },
+    )
+
+    result = extract_events(db)
+
+    assert result["events_created"] == 0
+    assert result["events_rejected"] == 1
+    assert db.query(HotEvent).count() == 0
+
+
 def test_production_never_falls_back_to_mock(
     db, source_factory, item_factory, monkeypatch
 ):
