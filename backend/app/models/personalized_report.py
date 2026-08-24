@@ -1,7 +1,7 @@
 """个性化日报（PersonalizedReport）：每位创作者每天的个性化日报。"""
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -10,6 +10,7 @@ from app.core.time import utcnow
 
 class PersonalizedReport(Base):
     __tablename__ = "personalized_report"
+    __table_args__ = (UniqueConstraint("user_id", "report_date", name="uq_personalized_report_user_date"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False, index=True)

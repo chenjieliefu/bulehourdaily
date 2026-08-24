@@ -9,9 +9,13 @@ from app.models import (
     MailDelivery,
     PersonalizedReport,
     PersonalizedTopic,
+    TopicFeedback,
 )
+from app.models.enums import FeedbackStatus
+from app.core.config import settings
 from app.services.auth import register
 from app.services.event_extraction import extract_events
+from app.services import personalization
 from app.services.personalization import generate_personalized
 from app.services.subscriptions import create_subscription
 
@@ -65,7 +69,7 @@ def test_generate_creates_report_and_topics(db, source_factory, item_factory):
     assert all(t.time_window.startswith("建议 ") for t in topics)
 
 
-def test_regenerate_same_day_overwrites(db, source_factory, item_factory):
+def test_regenerate_same_day_preserves_existing_report(db, source_factory, item_factory):
     user = _user(db)
     _profile(db, user)
     src = source_factory()
@@ -74,9 +78,18 @@ def test_regenerate_same_day_overwrites(db, source_factory, item_factory):
     extract_events(db)
 
     first = generate_personalized(db, user.id)
+    topic = db.query(PersonalizedTopic).filter_by(report_id=first["report_id"]).first()
+    feedback = TopicFeedback(user_id=user.id, topic_id=topic.id, status=FeedbackStatus.want)
+    db.add(feedback)
+    db.commit()
+    original_topic_ids = [row.id for row in db.query(PersonalizedTopic).filter_by(report_id=first["report_id"]).all()]
+
     second = generate_personalized(db, user.id)
     assert first["report_id"] == second["report_id"]
+    assert second["status"] == "already_generated"
     assert db.query(PersonalizedReport).count() == 1
+    assert [row.id for row in db.query(PersonalizedTopic).filter_by(report_id=first["report_id"]).all()] == original_topic_ids
+    assert db.get(TopicFeedback, feedback.id).topic_id == topic.id
 
 
 def test_trial_limit_three_reports(db, source_factory, item_factory):
@@ -96,7 +109,7 @@ def test_trial_limit_three_reports(db, source_factory, item_factory):
         generate_personalized(db, user.id)
 
 
-def test_generate_creates_mail_delivery(db, source_factory, item_factory):
+def test_generate_does_not_create_fake_mail_delivery(db, source_factory, item_factory):
     user = _user(db)
     _profile(db, user)
     src = source_factory()
@@ -105,7 +118,41 @@ def test_generate_creates_mail_delivery(db, source_factory, item_factory):
     extract_events(db)
 
     generate_personalized(db, user.id)
-    assert db.query(MailDelivery).count() == 1
+    assert db.query(MailDelivery).count() == 0
+
+
+def test_invalid_model_result_does_not_consume_trial(db, source_factory, item_factory, monkeypatch):
+    user = _user(db)
+    _profile(db, user)
+    src = source_factory()
+    for i in range(6):
+        item_factory(src, title=f"t{i}")
+    extract_events(db)
+
+    monkeypatch.setattr(personalization.llm, "is_available", lambda: True)
+    monkeypatch.setattr(
+        personalization.llm,
+        "complete_json",
+        lambda *_args, **_kwargs: {"summary": "", "reason": "", "topics": []},
+    )
+
+    with pytest.raises(personalization.PersonalizedQualityError):
+        generate_personalized(db, user.id)
+    assert db.query(PersonalizedReport).count() == 0
+
+
+def test_production_never_falls_back_to_mock(db, source_factory, item_factory, monkeypatch):
+    user = _user(db)
+    _profile(db, user)
+    src = source_factory()
+    for i in range(6):
+        item_factory(src, title=f"t{i}")
+    extract_events(db)
+    monkeypatch.setattr(settings, "app_env", "prod")
+
+    with pytest.raises(personalization.PersonalizedQualityError, match="模型暂不可用"):
+        generate_personalized(db, user.id)
+    assert db.query(PersonalizedReport).count() == 0
 
 
 def test_active_subscription_bypasses_trial(db, source_factory, item_factory):

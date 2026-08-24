@@ -18,6 +18,11 @@ const TOP_GROUP: NavItem[] = [
   { href: "/archive", label: "往期归档" },
 ];
 
+const USER_GROUP: NavItem[] = [
+  ...TOP_GROUP,
+  { href: "/mine", label: "个性化日报" },
+];
+
 const OPERATOR_GROUP: NavItem[] = [
   { href: "/ops", label: "返回运营工作台" },
   { href: "/", label: "公开日报" },
@@ -61,7 +66,7 @@ export default function Sidebar() {
   const isActive = (href?: string) =>
     href ? (href === "/" ? pathname === "/" : pathname.startsWith(href)) : false;
 
-  const contentItems = isOperator ? OPERATOR_GROUP : TOP_GROUP;
+  const contentItems = isOperator ? OPERATOR_GROUP : USER_GROUP;
 
   function logout() {
     clearAuth();
@@ -125,9 +130,9 @@ export default function Sidebar() {
               href={item.href}
               className={itemCls(item)}
               onClick={(event) => {
-                if (item.href === "/archive" && !loggedIn) {
+                if ((item.href === "/archive" || item.href === "/mine") && !loggedIn) {
                   event.preventDefault();
-                  openAuth("login", "/archive");
+                  openAuth("login", item.href);
                 }
               }}
             >

@@ -49,4 +49,4 @@ def test_upgrade_database_schema_adopts_unversioned_legacy_database(
     assert "is_published" in _columns(database_path, "topic_recommendation")
     with sqlite3.connect(database_path) as connection:
         version = connection.execute("SELECT version_num FROM alembic_version").fetchone()
-    assert version == ("e42f7c1d9a30",)
+    assert version == ("9b7c31f2a640",)

@@ -6,6 +6,7 @@ import {
   generatePersonalized,
   getJob,
   getMySubscription,
+  getProfile,
   getPersonalizedReport,
   listPersonalizedReports,
   type PersonalizedReport,
@@ -19,6 +20,7 @@ export default function MinePage() {
   const [reports, setReports] = useState<PersonalizedReport[]>([]);
   const [detail, setDetail] = useState<PersonalizedReportDetail | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,6 +34,7 @@ export default function MinePage() {
         setDetail(await getPersonalizedReport(list[0].id));
       }
       setSubscription(await getMySubscription());
+      setHasProfile((await getProfile()) !== null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -69,6 +72,10 @@ export default function MinePage() {
     }
   }
 
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
+  const hasTodayReport = reports.some((report) => report.report_date === today);
+  const trialRemaining = Math.max(0, 3 - reports.length);
+
   return (
     <div className="mx-auto max-w-[880px]">
       <div className="flex flex-wrap items-end justify-between border-b border-steel pb-8 pt-10">
@@ -83,17 +90,27 @@ export default function MinePage() {
           {subscription ? (
             <span className="font-mono text-xs text-cyan">订阅中 · ¥{subscription.monthly_price}/月</span>
           ) : (
-            <span className="font-mono text-xs text-fog">未订阅 · 剩余体验 {Math.max(0, 3 - reports.length)} 份</span>
+            <span className="font-mono text-xs text-fog">免费体验 · 剩余 {trialRemaining} 份</span>
           )}
-          <button
-            onClick={onGenerate}
-            disabled={busy}
-            className="rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {busy ? (progress || "生成中…") : "生成今日个性化日报"}
-          </button>
+          {hasProfile ? (
+            <button
+              onClick={onGenerate}
+              disabled={busy || hasTodayReport || (!subscription && trialRemaining === 0)}
+              className="rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (progress || "生成中…") : hasTodayReport ? "今日已领取" : "领取今天的日报"}
+            </button>
+          ) : (
+            <Link href="/profile" className="rounded-full bg-cyan px-6 py-2.5 text-sm font-medium text-white hover:opacity-90">
+              先填写画像
+            </Link>
+          )}
         </div>
       </div>
+
+      {!subscription && !hasTodayReport && trialRemaining > 0 && (
+        <p className="mt-4 text-right text-xs text-fog">生成成功后消耗 1 份体验；失败不会扣减。</p>
+      )}
 
       {error && <p className="mt-6 rounded-card border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">{error}</p>}
 
@@ -134,7 +151,7 @@ export default function MinePage() {
               <h2 className="mt-3 font-serif text-xl leading-snug text-cloud">{detail.summary}</h2>
               {detail.reason && (
                 <div className="mt-3 rounded-card border border-iris/30 bg-iris/10 p-4">
-                  <span className="font-mono text-xs uppercase tracking-widest text-pale-iris">为什么推荐给你</span>
+                  <span className="font-mono text-xs uppercase tracking-widest text-deep-iris">为什么推荐给你</span>
                   <p className="mt-1.5 text-sm text-silver">{detail.reason}</p>
                 </div>
               )}

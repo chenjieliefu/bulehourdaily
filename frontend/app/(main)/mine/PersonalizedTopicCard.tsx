@@ -25,6 +25,7 @@ const FB_OPTIONS: { key: Feedback["status"]; label: string }[] = [
 ];
 
 export default function PersonalizedTopicCard({ topic: t }: { topic: PersonalizedTopic }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   const [planBusy, setPlanBusy] = useState(false);
@@ -92,13 +93,14 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
       </div>
       <h3 className="mt-3 font-serif text-lg text-cloud">{t.title}</h3>
 
+      <div className="mt-4 rounded-card border border-cyan/20 bg-pale-iris/35 p-4">
+        <p className="font-mono text-xs uppercase tracking-widest text-cyan">为什么推荐给你</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-ash">{t.recommendation_reason}</p>
+      </div>
+
       <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-        <P label="发生了什么">{t.what_happened}</P>
-        <P label="为什么现在关注">{t.why_now}</P>
         <P label="切入角度">{t.angle}</P>
         <P label="前三秒钩子" accent>{t.hook}</P>
-        <P label="结构建议">{t.structure}</P>
-        <P label="画面建议">{t.visual}</P>
       </div>
 
       <div className="mt-4 rounded-card border border-cyan/30 bg-cyan/10 p-3">
@@ -117,8 +119,26 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
         )}
       </div>
 
+      <button
+        type="button"
+        onClick={() => setDetailsOpen((open) => !open)}
+        aria-expanded={detailsOpen}
+        className="mt-4 text-sm text-cyan hover:underline"
+      >
+        {detailsOpen ? "收起完整详情 ↑" : "查看完整详情 ↓"}
+      </button>
+
+      {detailsOpen && (
+        <div className="mt-4 grid gap-4 rounded-card border border-steel bg-abyss/30 p-5 text-sm md:grid-cols-2">
+          <P label="发生了什么">{t.what_happened}</P>
+          <P label="为什么现在关注">{t.why_now}</P>
+          <P label="结构建议">{t.structure}</P>
+          <P label="画面建议">{t.visual}</P>
+        </div>
+      )}
+
       {/* 创作方案 */}
-      <div className="mt-5 border-t border-steel pt-4">
+      {detailsOpen && <div className="mt-5 border-t border-steel pt-4">
         <button
           onClick={onExpandPlan}
           disabled={planBusy}
@@ -153,7 +173,7 @@ export default function PersonalizedTopicCard({ topic: t }: { topic: Personalize
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* 发布反馈 */}
       <div className="mt-5 flex flex-wrap items-center gap-2">

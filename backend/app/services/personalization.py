@@ -13,15 +13,29 @@ from app.models import (
     HotEvent,
     PersonalizedReport,
     PersonalizedTopic,
-    User,
 )
 from app.models.enums import EventStatus
-from . import llm, mail
+from . import llm
 from .report_generation import _deadline_str, _hours_ago
 from .subscriptions import has_active_subscription
 
 _BJ = ZoneInfo("Asia/Shanghai")
 _PROMPT = (Path(__file__).resolve().parent / "prompts" / "personalization.md").read_text(encoding="utf-8")
+_REQUIRED_TOPIC_FIELDS = (
+    "title",
+    "what_happened",
+    "why_now",
+    "angle",
+    "hook",
+    "structure",
+    "visual",
+    "recommendation_reason",
+)
+_FORBIDDEN_MARKERS = ("[模拟]", "[模拟个性化选题]")
+
+
+class PersonalizedQualityError(ValueError):
+    """个性化日报未达到可交付标准。"""
 
 
 def _profile_text(p: CreatorProfile) -> str:
@@ -71,6 +85,70 @@ def _mock(profile: CreatorProfile, events: list[HotEvent]) -> dict:
     }
 
 
+def _contains_forbidden_marker(value: object) -> bool:
+    text = str(value or "")
+    return any(marker in text for marker in _FORBIDDEN_MARKERS)
+
+
+def _validated_topics(db: Session, data: dict, candidates: list[HotEvent]) -> list[dict]:
+    """在写库和占用体验次数之前校验模型结果。"""
+    issues: list[str] = []
+    summary = str(data.get("summary") or "").strip()
+    reason = str(data.get("reason") or "").strip()
+    if not summary:
+        issues.append("日报摘要为空")
+    if not reason:
+        issues.append("整份推荐理由为空")
+
+    raw_topics = data.get("topics")
+    if not isinstance(raw_topics, list):
+        raw_topics = []
+    candidate_ids = {event.id for event in candidates}
+    topics: list[dict] = []
+    seen_event_ids: set[int] = set()
+    for raw in raw_topics:
+        if not isinstance(raw, dict):
+            issues.append("选题格式错误")
+            continue
+        event_id = raw.get("event_id")
+        if event_id not in candidate_ids:
+            issues.append("选题引用了候选池之外的事件")
+            continue
+        if event_id in seen_event_ids:
+            issues.append("同一事件被重复推荐")
+            continue
+        seen_event_ids.add(event_id)
+        topics.append(raw)
+
+    if not 1 <= len(topics) <= 3:
+        issues.append(f"个性化选题数量必须为 1—3 条，当前为 {len(topics)} 条")
+
+    evidence_event_ids = {
+        event_id
+        for (event_id,) in db.query(EventEvidence.hot_event_id)
+        .filter(EventEvidence.hot_event_id.in_(seen_event_ids))
+        .distinct()
+        .all()
+    } if seen_event_ids else set()
+
+    for index, topic in enumerate(topics, start=1):
+        missing = [field for field in _REQUIRED_TOPIC_FIELDS if not str(topic.get(field) or "").strip()]
+        if missing:
+            issues.append(f"第 {index} 个选题缺少字段：{', '.join(missing)}")
+        if topic.get("event_id") not in evidence_event_ids:
+            issues.append(f"第 {index} 个选题没有原始证据")
+
+    if settings.app_env == "prod":
+        values = [summary, reason]
+        values.extend(topic.get(field) for topic in topics for field in _REQUIRED_TOPIC_FIELDS)
+        if any(_contains_forbidden_marker(value) for value in values):
+            issues.append("个性化日报包含模拟内容")
+
+    if issues:
+        raise PersonalizedQualityError("；".join(issues))
+    return topics
+
+
 def generate_personalized(db: Session, user_id: int) -> dict:
     profile = db.query(CreatorProfile).filter(CreatorProfile.user_id == user_id).first()
     if profile is None:
@@ -82,7 +160,13 @@ def generate_personalized(db: Session, user_id: int) -> dict:
         .filter(PersonalizedReport.user_id == user_id, PersonalizedReport.report_date == today)
         .first()
     )
-    if existing is None and not has_active_subscription(db, user_id):
+    if existing is not None:
+        topic_count = db.query(PersonalizedTopic).filter(PersonalizedTopic.report_id == existing.id).count()
+        if topic_count < 1:
+            raise PersonalizedQualityError("今日个性化日报记录不完整，请联系运营者")
+        return {"report_id": existing.id, "topics": topic_count, "status": "already_generated"}
+
+    if not has_active_subscription(db, user_id):
         total = db.query(PersonalizedReport).filter(PersonalizedReport.user_id == user_id).count()
         if total >= settings.trial_personalized_reports:
             raise ValueError("体验次数已用完（3 份），请订阅后继续")
@@ -110,19 +194,16 @@ def generate_personalized(db: Session, user_id: int) -> dict:
     if llm.is_available():
         data = llm.complete_json(_PROMPT, user_prompt)
     else:
+        if settings.app_env == "prod":
+            raise PersonalizedQualityError("个性化日报模型暂不可用，请稍后再试")
         data = _mock(profile, candidates)
 
-    candidate_ids = {e.id for e in candidates}
     events_by_id = {e.id: e for e in candidates}
-    topics_data = [t for t in data.get("topics", []) if t.get("event_id") in candidate_ids][:3]
+    topics_data = _validated_topics(db, data, candidates)
 
-    if existing is None:
-        report = PersonalizedReport(user_id=user_id, report_date=today)
-        db.add(report)
-        db.flush()
-    else:
-        report = existing
-        db.query(PersonalizedTopic).filter(PersonalizedTopic.report_id == report.id).delete()
+    report = PersonalizedReport(user_id=user_id, report_date=today)
+    db.add(report)
+    db.flush()
 
     report.summary = str(data.get("summary") or "")[:1000]
     report.reason = str(data.get("reason") or "")[:2000]
@@ -149,13 +230,4 @@ def generate_personalized(db: Session, user_id: int) -> dict:
         )
 
     db.commit()
-
-    # 模拟发送个性化日报邮件
-    user = db.get(User, user_id)
-    created_topics = (
-        db.query(PersonalizedTopic).filter(PersonalizedTopic.report_id == report.id).all()
-    )
-    mail.send_personalized_mail(db, user, report, created_topics)
-    db.commit()
-
-    return {"report_id": report.id, "topics": len(topics_data)}
+    return {"report_id": report.id, "topics": len(topics_data), "status": "generated"}
