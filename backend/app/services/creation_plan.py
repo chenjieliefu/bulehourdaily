@@ -3,10 +3,17 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models import CreationPlan, CreatorProfile, PersonalizedReport, PersonalizedTopic
 from . import llm
 
 _PROMPT = (Path(__file__).resolve().parent / "prompts" / "creation_plan.md").read_text(encoding="utf-8")
+_REQUIRED_TEXT_FIELDS = ("core_viewpoint", "structure", "visual", "risks")
+_FORBIDDEN_MARKERS = ("[模拟]",)
+
+
+class CreationPlanQualityError(ValueError):
+    """创作方案未达到可交付标准。"""
 
 
 def _profile_text(p: CreatorProfile) -> str:
@@ -34,6 +41,34 @@ def _mock(t: PersonalizedTopic) -> dict:
     }
 
 
+def _validated_data(data: dict) -> dict:
+    issues: list[str] = []
+    normalized = {
+        field: str(data.get(field) or "").strip()
+        for field in _REQUIRED_TEXT_FIELDS
+    }
+    hooks = [str(item).strip() for item in data.get("hooks", []) if str(item).strip()]
+    titles = [str(item).strip() for item in data.get("titles", []) if str(item).strip()]
+
+    missing = [field for field, value in normalized.items() if not value]
+    if missing:
+        issues.append(f"创作方案缺少字段：{', '.join(missing)}")
+    if not 2 <= len(hooks) <= 3:
+        issues.append(f"开场钩子必须为 2—3 个，当前为 {len(hooks)} 个")
+    if not 2 <= len(titles) <= 3:
+        issues.append(f"标题方向必须为 2—3 个，当前为 {len(titles)} 个")
+
+    values = [*normalized.values(), *hooks, *titles]
+    if settings.app_env == "prod" and any(
+        marker in value for marker in _FORBIDDEN_MARKERS for value in values
+    ):
+        issues.append("创作方案包含模拟内容")
+    if issues:
+        raise CreationPlanQualityError("；".join(issues))
+
+    return {**normalized, "hooks": hooks, "titles": titles}
+
+
 def generate_plan(db: Session, user_id: int, topic_id: int) -> dict:
     topic = db.get(PersonalizedTopic, topic_id)
     if topic is None:
@@ -46,18 +81,23 @@ def generate_plan(db: Session, user_id: int, topic_id: int) -> dict:
     if profile is None:
         raise ValueError("请先填写创作者画像")
 
+    existing = db.query(CreationPlan).filter(CreationPlan.topic_id == topic_id).first()
+    if existing is not None:
+        return {"plan_id": existing.id, "status": "already_generated"}
+
     user_prompt = _PROMPT.replace("{profile}", _profile_text(profile)).replace(
         "{topic}", _topic_text(topic)
     )
     if llm.is_available():
         data = llm.complete_json(_PROMPT, user_prompt, max_tokens=3000)
     else:
+        if settings.app_env == "prod":
+            raise CreationPlanQualityError("创作方案模型暂不可用，请稍后再试")
         data = _mock(topic)
+    data = _validated_data(data)
 
-    plan = db.query(CreationPlan).filter(CreationPlan.topic_id == topic_id).first()
-    if plan is None:
-        plan = CreationPlan(topic_id=topic_id, user_id=user_id)
-        db.add(plan)
+    plan = CreationPlan(topic_id=topic_id, user_id=user_id)
+    db.add(plan)
     plan.core_viewpoint = str(data.get("core_viewpoint") or "")[:2000]
     plan.hooks = [str(h)[:500] for h in data.get("hooks", [])][:3]
     plan.structure = str(data.get("structure") or "")[:3000]
@@ -66,4 +106,4 @@ def generate_plan(db: Session, user_id: int, topic_id: int) -> dict:
     plan.risks = str(data.get("risks") or "")[:2000]
     db.commit()
     db.refresh(plan)
-    return {"plan_id": plan.id}
+    return {"plan_id": plan.id, "status": "generated"}

@@ -3,6 +3,8 @@ import pytest
 
 from app.models import CreationPlan, CreatorProfile, InviteCode, PersonalizedTopic
 from app.services.auth import register
+from app.core.config import settings
+from app.services import creation_plan
 from app.services.creation_plan import generate_plan
 from app.services.event_extraction import extract_events
 from app.services.personalization import generate_personalized
@@ -38,11 +40,32 @@ def test_generate_plan_creates(db, source_factory, item_factory):
     assert plan.risks
 
 
-def test_generate_plan_overwrites(db, source_factory, item_factory):
+def test_generate_plan_preserves_existing(db, source_factory, item_factory):
     user, topic = _setup(db, source_factory, item_factory)
-    generate_plan(db, user.id, topic.id)
-    generate_plan(db, user.id, topic.id)
+    first = generate_plan(db, user.id, topic.id)
+    second = generate_plan(db, user.id, topic.id)
+    assert first["plan_id"] == second["plan_id"]
+    assert second["status"] == "already_generated"
     assert db.query(CreationPlan).count() == 1
+
+
+def test_invalid_model_result_does_not_create_plan(db, source_factory, item_factory, monkeypatch):
+    user, topic = _setup(db, source_factory, item_factory)
+    monkeypatch.setattr(creation_plan.llm, "is_available", lambda: True)
+    monkeypatch.setattr(creation_plan.llm, "complete_json", lambda *_args, **_kwargs: {})
+
+    with pytest.raises(creation_plan.CreationPlanQualityError):
+        generate_plan(db, user.id, topic.id)
+    assert db.query(CreationPlan).count() == 0
+
+
+def test_production_never_falls_back_to_mock(db, source_factory, item_factory, monkeypatch):
+    user, topic = _setup(db, source_factory, item_factory)
+    monkeypatch.setattr(settings, "app_env", "prod")
+
+    with pytest.raises(creation_plan.CreationPlanQualityError, match="模型暂不可用"):
+        generate_plan(db, user.id, topic.id)
+    assert db.query(CreationPlan).count() == 0
 
 
 def test_generate_plan_wrong_user_raises(db, source_factory, item_factory):
