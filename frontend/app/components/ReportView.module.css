@@ -3,6 +3,56 @@
   margin: 2rem auto 0;
 }
 
+.archiveReport {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.archiveReport .cover {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.75rem;
+  padding: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.archiveReport .coverCopy {
+  max-width: 820px;
+}
+
+.archiveReport .coverTitle {
+  max-width: none;
+  white-space: normal;
+}
+
+.archiveReport .summary {
+  max-width: 760px;
+}
+
+.archiveReport .issueIndex {
+  padding: 1rem 1.35rem;
+}
+
+.archiveReport .issueIndex ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.75rem;
+}
+
+.archiveReport .issueIndex li + li {
+  border-top: 0;
+}
+
+.archiveReport .issueIndex li:nth-child(n + 3) {
+  border-top: 1px solid rgba(49, 95, 130, 0.11);
+}
+
+.archiveReport .issueIndex button {
+  padding: 0.85rem 0;
+}
+
+.archiveReport .section {
+  margin-top: clamp(2.75rem, 5vw, 4rem);
+}
+
 .cover {
   position: relative;
   isolation: isolate;
@@ -547,6 +597,10 @@
   }
 
   .issueIndex {
+    display: none;
+  }
+
+  .archiveReport .issueIndex {
     display: none;
   }
 

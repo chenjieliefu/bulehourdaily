@@ -149,7 +149,7 @@ export default function ArchivePage() {
       )}
 
       {!loading && reports.length > 0 && (
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="mt-8 grid items-start gap-7 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="paper-card overflow-hidden rounded-feature lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
             <div className="flex items-center justify-between border-b border-steel px-5 py-5">
               <div>
@@ -205,12 +205,12 @@ export default function ArchivePage() {
                   {selectedReport ? fmtDate(selectedReport.report_date) : "正在加载"}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => selectRelative(-1)}
                   disabled={selectedIndex <= 0}
-                  className="rounded-full border border-steel bg-white px-3 py-1.5 text-xs text-silver transition-colors hover:border-cyan hover:text-cyan disabled:cursor-not-allowed disabled:opacity-35"
+                  className="rounded-full border border-steel bg-white/90 px-4 py-2 text-xs font-medium text-silver shadow-sm transition-colors hover:border-cyan hover:text-cyan disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none"
                 >
                   ← 较新
                 </button>
@@ -218,7 +218,7 @@ export default function ArchivePage() {
                   type="button"
                   onClick={() => selectRelative(1)}
                   disabled={selectedIndex < 0 || selectedIndex >= reports.length - 1}
-                  className="rounded-full border border-steel bg-white px-3 py-1.5 text-xs text-silver transition-colors hover:border-cyan hover:text-cyan disabled:cursor-not-allowed disabled:opacity-35"
+                  className="rounded-full border border-steel bg-white/90 px-4 py-2 text-xs font-medium text-silver shadow-sm transition-colors hover:border-cyan hover:text-cyan disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none"
                 >
                   更早 →
                 </button>
@@ -239,7 +239,7 @@ export default function ArchivePage() {
             )}
 
             {!detailLoading && !error && selectedReport && (
-              <ReportView key={selectedReport.id} report={selectedReport} />
+              <ReportView key={selectedReport.id} report={selectedReport} layout="archive" />
             )}
           </section>
         </div>

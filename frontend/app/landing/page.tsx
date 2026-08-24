@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import Brand from "@/app/components/Brand";
+import { Suspense, useEffect, useState } from "react";
+import LandingPrototype from "./LandingPrototype";
 import { getPublicSiteContent } from "@/lib/api";
 
 const DEFAULT_CONTENT = {
@@ -22,81 +21,10 @@ export default function LandingPage() {
   useEffect(() => {
     getPublicSiteContent("product_intro").then((row) => setContent({ ...DEFAULT_CONTENT, ...row.content } as typeof DEFAULT_CONTENT)).catch(() => undefined);
   }, []);
+
   return (
-    <div className="min-h-screen bg-obsidian">
-      {/* 顶栏 */}
-      <header className="glass sticky top-0 z-50">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-4">
-          <Brand compact />
-          <Link
-            href="/"
-            className="rounded-full border border-cyan/40 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-cyan transition-colors hover:bg-cyan/10"
-          >
-            看今日日报 →
-          </Link>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className="sky-gradient relative overflow-hidden px-6 pb-32 pt-24 text-center">
-        <div className="grid-lines pointer-events-none absolute inset-0" />
-        <div className="horizon-glow pointer-events-none absolute inset-x-0 bottom-0 h-64" />
-
-        <div className="relative">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-deep-iris">
-            {content.eyebrow}
-          </p>
-          <h1 className="mx-auto mt-8 max-w-3xl font-serif text-6xl leading-tight text-cloud md:text-7xl">
-            {content.title}
-          </h1>
-          <p className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-ash">
-            {content.subtitle}
-          </p>
-          <p className="mt-5 font-mono text-xs uppercase tracking-widest text-deep-iris/60">
-            See what&apos;s next before the world wakes.
-          </p>
-
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/"
-              className="rounded-full bg-cyan px-8 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
-            >
-              看今日日报
-            </Link>
-            <Link
-              href="/upgrade"
-              className="glass rounded-full px-8 py-3 text-sm text-cloud transition-colors hover:text-cyan"
-            >
-              了解会员
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 产品说明 */}
-      <section className="mx-auto max-w-[1200px] px-6 py-24">
-        <p className="font-mono text-xs uppercase tracking-widest text-cyan">产品是什么</p>
-        <h2 className="mt-4 max-w-2xl font-serif text-3xl leading-snug text-cloud">
-          {content.section_title}
-        </h2>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {content.features.map((item, index) => (
-            <div key={`${index}-${item.title}`} className="paper-card rounded-feature p-8">
-              <p className="font-serif text-3xl text-deep-iris">{String(index + 1).padStart(2, "0")}</p>
-              <h3 className="mt-4 font-serif text-xl text-cloud">{item.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-ash">{item.detail}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 页脚 */}
-      <footer className="border-t border-steel px-6 py-12 text-center">
-        <div className="flex justify-center"><Brand compact /></div>
-        <p className="mt-3 font-mono text-xs uppercase tracking-widest text-fog">
-          在世界醒来之前，看见下一刻。
-        </p>
-      </footer>
-    </div>
+    <Suspense fallback={<div className="min-h-screen bg-[#194967]" />}>
+      <LandingPrototype content={content} />
+    </Suspense>
   );
 }

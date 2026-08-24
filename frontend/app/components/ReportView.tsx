@@ -17,11 +17,17 @@ const ACCENTS = [
   { accent: "#d28b62", soft: "#fcf1e9", ink: "#945739" },
 ];
 
-export default function ReportView({ report }: { report: Report }) {
+export default function ReportView({
+  report,
+  layout = "default",
+}: {
+  report: Report;
+  layout?: "default" | "archive";
+}) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
-    <div className={styles.report}>
+    <div className={`${styles.report} ${layout === "archive" ? styles.archiveReport : ""}`}>
       <header className={styles.cover}>
         <div className={styles.coverCopy}>
           <div className={styles.kickerRow}>
