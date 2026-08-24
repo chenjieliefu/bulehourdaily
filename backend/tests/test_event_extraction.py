@@ -1,9 +1,13 @@
 """事件提取编排测试（mock 模式，无需真实 Key）。"""
 from datetime import datetime, timedelta
 
+import pytest
+
+from app.core.config import settings
 from app.core.time import utcnow
 from app.models import EventEvidence, HotEvent, SourceItem
 from app.models.enums import SourceType
+from app.services import event_extraction
 from app.services.event_extraction import extract_events, select_candidate_items
 from app.services.url_normalize import url_hash
 
@@ -145,3 +149,51 @@ def test_extract_skips_hallucinated_evidence_ids(db, source_factory, item_factor
 
     data = _mock_extract(select_candidate_items(db))
     assert data["events"][0]["evidence_item_ids"]
+
+
+def test_extract_rejects_unsupported_resignation_wave_claim(
+    db, source_factory, item_factory, monkeypatch
+):
+    source = source_factory()
+    item = item_factory(
+        source,
+        title="'AI refuser' quit her dream job, and hopes others follow",
+    )
+    monkeypatch.setattr(event_extraction.llm, "is_available", lambda: True)
+    monkeypatch.setattr(
+        event_extraction.llm,
+        "complete_json",
+        lambda *_args, **_kwargs: {
+            "events": [
+                {
+                    "title": "AI 从业者辞职潮引关注",
+                    "summary": "一位 AI 从业者辞去工作。",
+                    "evidence_item_ids": [item.id],
+                    "relevance_score": 4,
+                    "actionability_score": 4,
+                    "reason": "值得关注",
+                }
+            ]
+        },
+    )
+
+    result = extract_events(db)
+
+    assert result["events_created"] == 0
+    assert result["events_rejected"] == 1
+    assert db.query(HotEvent).count() == 0
+
+
+def test_production_never_falls_back_to_mock(
+    db, source_factory, item_factory, monkeypatch
+):
+    source = source_factory()
+    item_factory(source, title="real event")
+    monkeypatch.setattr(settings, "app_env", "prod")
+
+    with pytest.raises(
+        event_extraction.EventExtractionQualityError,
+        match="模型暂不可用",
+    ):
+        extract_events(db)
+    assert db.query(HotEvent).count() == 0

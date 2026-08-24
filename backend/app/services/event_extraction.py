@@ -4,6 +4,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.time import utcnow
 from app.models import EventEvidence, HotEvent, Source, SourceItem
 from app.models.enums import CredibilityLabel, EventStatus, SourceType
@@ -14,6 +15,16 @@ from .scoring import compute_sort_score
 _PROMPT = (Path(__file__).resolve().parent / "prompts" / "event_extraction.md").read_text(encoding="utf-8")
 _SUPPLEMENTAL_SOURCE_TYPES = {SourceType.aibase_daily, SourceType.hacker_news}
 _MINIMUM_DAILY_CANDIDATES = 3
+_UNSUPPORTED_SCALE_RULES = (
+    (("辞职潮", "离职潮"), ("辞职潮", "离职潮", "resignation wave", "wave of resignations", "mass resignation", "exodus", "quit in droves")),
+    (("大批", "大规模"), ("大批", "大规模", "many", "multiple", "mass ", "large-scale", "large scale")),
+    (("集体", "纷纷"), ("集体", "纷纷", "collective", "as a group", "many", "multiple")),
+    (("激增", "暴增"), ("激增", "暴增", "surge", "spike", "soar", "jump sharply", "sharp increase")),
+)
+
+
+class EventExtractionQualityError(ValueError):
+    """事件提取结果不满足生产内容要求。"""
 
 
 def select_candidate_items(
@@ -113,6 +124,16 @@ def _clamp_score(value) -> int:
         return 1
 
 
+def _has_unsupported_scale_claim(raw: dict, items: list[SourceItem]) -> bool:
+    generated = f"{raw.get('title') or ''} {raw.get('summary') or ''}".lower()
+    evidence = " ".join(f"{item.title} {item.body or ''}" for item in items).lower()
+    return any(
+        any(marker in generated for marker in generated_markers)
+        and not any(support in evidence for support in evidence_markers)
+        for generated_markers, evidence_markers in _UNSUPPORTED_SCALE_RULES
+    )
+
+
 def extract_events(
     db: Session,
     *,
@@ -132,6 +153,8 @@ def extract_events(
     if llm.is_available():
         data = llm.complete_json(_PROMPT, user_prompt)
     else:
+        if settings.app_env == "prod":
+            raise EventExtractionQualityError("事件提取模型暂不可用，请稍后再试")
         data = _mock_extract(items)
 
     valid_ids = {it.id for it in items}
@@ -142,6 +165,7 @@ def extract_events(
     }
 
     created = 0
+    rejected = 0
     for raw in data.get("events", []):
         evidence_ids = [
             int(x) for x in raw.get("evidence_item_ids", []) if str(x).isdigit()
@@ -154,6 +178,14 @@ def extract_events(
             continue
 
         ev_items = [items_by_id[x] for x in evidence_ids]
+        title = str(raw.get("title") or "").strip()
+        summary = str(raw.get("summary") or "").strip()
+        if not title or not summary or _has_unsupported_scale_claim(raw, ev_items):
+            rejected += 1
+            continue
+        if settings.app_env == "prod" and "[模拟]" in f"{title} {summary}":
+            rejected += 1
+            continue
         evidence_sources = [(it.source.id, it.source.credibility_level) for it in ev_items]
         label: CredibilityLabel = compute_credibility(evidence_sources)
         latest_ts = max((it.published_at for it in ev_items if it.published_at), default=None)
@@ -162,8 +194,8 @@ def extract_events(
         actionability = _clamp_score(raw.get("actionability_score"))
 
         event = HotEvent(
-            title=str(raw.get("title") or "")[:300] or "[无标题]",
-            summary=str(raw.get("summary") or "")[:2000],
+            title=title[:300],
+            summary=summary[:2000],
             credibility_label=label,
             relevance_score=relevance,
             actionability_score=actionability,
@@ -180,4 +212,4 @@ def extract_events(
         created += 1
 
     db.commit()
-    return {"events_created": created, "candidates": len(items)}
+    return {"events_created": created, "events_rejected": rejected, "candidates": len(items)}
