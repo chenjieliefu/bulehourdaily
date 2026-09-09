@@ -1,9 +1,9 @@
-# 微蓝日报（Blue Hour Daily）
+# 微蓝日报
 
 [English](README.md) | **简体中文**
 
 <p align="center">
-  <img src="docs/images/bulehourdaily-product.png" alt="微蓝日报（Blue Hour Daily）产品界面截图" width="960">
+  <img src="docs/images/bulehourdaily-product.png" alt="微蓝日报产品界面截图" width="960">
 </p>
 
 线上公开日报页面实拍（2026-09-09）。展示的是当日页面状态，日报内容会持续更新。
