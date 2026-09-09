@@ -1,122 +1,131 @@
-# 微蓝日报（Blue Hour Daily）
+# Blue Hour Daily · 微蓝日报
 
-每天把海外最新 AI 动态，转化成三个适合创作者账号的抖音选题。
+**English** | [简体中文](README.zh-CN.md)
 
-> 当前阶段：邀请制 MVP 的页面、接口、创作者链路和运营工作台已经实现并部署；产品正在进入真实信息源、真实模型内容、邮件送达和付费意愿验证。功能可运行不等于已经完成商业验证。
+<p align="center">
+  <img src="docs/images/bulehourdaily-product.png" alt="Blue Hour Daily public briefing with a daily issue, topic index and editorial picks" width="960">
+</p>
 
-## 产品是什么
+Actual public-site screenshot captured on September 9, 2026. It shows that day's page state; briefing content changes over time.
 
-微蓝日报面向持续更新 AI 内容的个人抖音创作者，解决四个连续问题：
+**Turn the latest global AI developments into three video topics tailored to a creator's account.**
 
-1. 海外最近发生了什么；
-2. 哪些事件值得今天跟进；
-3. 哪个角度适合我的账号；
-4. 怎样组织成一条可以开始拍摄的短视频。
+Blue Hour Daily helps individual AI-content creators on Douyin move from scattered news to a usable short-video plan: what happened, why it matters, which angle fits their audience, and how to start filming.
 
-产品前台是一份稳定日报，不是实时新闻流。所有创作者共享热点事件、证据和可信度，个性化只改变选题选择、价值判断、切入角度和创作方案。
+The invitation-based MVP includes deployed pages, APIs, creator journeys and an operations workspace. Real-source coverage, model-generated content quality, email delivery and willingness to pay still require validation. A working feature is not the same as a validated business.
 
-## 当前产品结构
+**[Open the product](https://sbi34p3pcick3cph3km5b.apigateway-cn-beijing.volceapi.com/)**
 
-### 访客与创作者侧
+## Product approach
 
-- **公开日报**：完整查看当天通用选题、热点速览、证据和可信度。
-- **往期归档**：排除最新一期，左侧选择历史日报，右侧阅读完整内容。
-- **个性化日报**：具有个性化资格的创作者每天获得三个基于画像的选题。
-- **创作方案**：展开钩子、结构、画面、标题方向和风险提示。
-- **创作者画像**：维护账号定位、目标观众、表达风格、视频长度和内容禁区。
-- **升级会员**：展示免费体验、会员权益、创始价格和当前订阅状态。
-- **意见反馈**：访客或创作者提交产品问题与建议。
-- **产品介绍**：介绍微蓝日报的定位和核心价值。
+The main experience is a stable daily briefing, not a real-time news feed. Creators share the same event pool, evidence and confidence information. Personalization changes topic selection, value judgments, creative angles and production plans, rather than rewriting the underlying facts for each person.
 
-### 运营侧
+## For visitors and creators
 
-运营者登录后进入独立的 `/ops` 工作台，不复用普通用户导航：
+- **Public daily briefing:** general topics, a news overview, evidence and confidence information.
+- **Archive:** browse previous issues, excluding the latest one, with an issue list beside the reading area.
+- **Personalized daily:** three topics per eligible creator, based on their profile.
+- **Production plans:** opening hooks, story structure, visual suggestions, headline directions and risk notes.
+- **Creator profile:** positioning, target audience, delivery style, video length and subjects to avoid.
+- **Membership:** trial allowance, benefits, founding-member pricing and subscription status.
+- **Feedback:** product issues and suggestions from visitors or creators.
+- **Product introduction:** positioning and core value.
 
-- 运营概览；
-- 今日日报、候选事件、日报记录；
-- 个性化内容、邮件送达；
-- 创作者、订阅管理、邀请码；
-- 产品反馈、发布反馈；
-- 产品介绍、会员页面的草稿、发布和回滚；
-- 信息源、采集状态、任务记录。
+## For operators
 
-## 商业规则
+Operators use a separate `/ops` workspace with its own navigation and access controls:
 
-- 注册后免费获得三份个性化日报，按成功生成并可访问的份数计算。
-- 标准价格为 ¥49/月。
-- 前 50 位创始订阅用户为 ¥29/月，连续订阅期间保留创始价格。
-- 当前由运营者人工确认付款并开通订阅，尚未接入自动支付。
-- 体验结束后仍可阅读公开日报，但不能继续获得新的个性化内容。
+- Overview, today's briefing, candidate events and issue history.
+- Personalized content and email-delivery records.
+- Creators, subscriptions and invitation codes.
+- Product feedback and publishing feedback.
+- Draft, publish and rollback controls for introduction and membership pages.
+- Sources, collection status and task records.
 
-## 能力状态
+Operator and creator sessions are separated. Operator access is checked on the server; an ordinary creator account cannot use the operations workspace.
 
-| 能力 | 当前状态 | 说明 |
+## MVP subscription rules
+
+- Each registered creator receives three free personalized briefings, counted only after successful generation and availability.
+- The configured standard price is **¥49/month**.
+- The first 50 founding subscribers receive **¥29/month** while their subscription remains continuous.
+- Operators currently confirm payment and activate subscriptions manually; automatic payment is not connected.
+- Creators can continue reading the public daily after their trial ends, but cannot receive new personalized briefings without eligibility.
+
+## Capability status
+
+| Capability | Status | Qualification |
 |---|---|---|
-| 公开日报、归档与分享 | 已上线 | 可通过线上前端访问 |
-| 邀请注册、画像与个性化日报 | 已上线，待真实内容验证 | 无模型 Key 时会使用 mock 结果 |
-| 创作方案与发布反馈 | 已上线，待真实用户验证 | 尚未接入抖音数据回读 |
-| 产品反馈闭环 | 已上线 | 可提交并在运营工作台流转状态 |
-| 人工订阅与邀请码 | 已上线 | 自动支付未接入 |
-| 独立运营工作台 | 已上线 | 服务端运营角色校验，运营会话与创作者会话隔离 |
-| 真实 X 数据采集 | 待接入 | 当前 X 账号为占位，不能视为商业数据能力 |
-| 真实邮件发送 | 待接入 | 当前只记录模拟送达，不会真正发信 |
-| 自动支付 | 待接入 | 当前为人工确认开通 |
-| 收藏、搜索、多领域 | 延后 | 不属于当前邀请制 MVP |
+| Public daily, archive and sharing | Deployed | Available through the frontend |
+| Invitation signup, profile and personalized daily | Deployed; real-content validation pending | Mock results are used when no model key is configured |
+| Production plans and publishing feedback | Deployed; user validation pending | No Douyin analytics readback integration |
+| Product feedback workflow | Deployed | Submission and operator status handling |
+| Manual subscriptions and invitation codes | Deployed | No automatic payment integration |
+| Separate operations workspace | Deployed | Server-side role checks and separated sessions |
+| Real X collection | Pending | Placeholder X accounts do not establish a commercial data capability |
+| Real email sending | Pending | Current delivery records are simulated; no real email is sent |
+| Automatic payment | Pending | Activation is manual |
+| Favorites, search and multiple content domains | Deferred | Outside the current invitation-based MVP |
 
-## 线上入口
+These are the documented implementation boundaries, not a claim that every external integration has been validated in production.
 
-- 产品入口：https://sbi34p3pcick3cph3km5b.apigateway-cn-beijing.volceapi.com/
-- 运营工作台：https://sbi34p3pcick3cph3km5b.apigateway-cn-beijing.volceapi.com/ops
-- 后端 API：https://sc0hshvaar6kuul9kb1pu.apigateway-cn-beijing.volceapi.com/
+## Live endpoints
 
-运营工作台必须使用运营账号登录。测试账号和密码不写入仓库文档。
+- [Product](https://sbi34p3pcick3cph3km5b.apigateway-cn-beijing.volceapi.com/)
+- [Operations workspace](https://sbi34p3pcick3cph3km5b.apigateway-cn-beijing.volceapi.com/ops)
+- [Backend API](https://sc0hshvaar6kuul9kb1pu.apigateway-cn-beijing.volceapi.com/)
 
-## 文档入口
+The operations workspace requires an operator account. Test accounts and passwords are not published in repository documentation.
 
-- [产品需求文档](./PRD.md)
-- [产品决策备忘](./决策备忘.md)
-- [领域术语](./CONTEXT.md)
-- [ADR-0001：共享热点事件池与建议层个性化](./docs/adr/0001-shared-hot-event-pool-personalized-recommendations.md)
-- [运营工作台上线说明](./docs/运营工作台-上线说明.md)
-- [技术适配声明](./docs/技术适配声明.md)
-
-## 仓库结构
+## Repository structure
 
 ```text
-├── PRD.md
-├── 决策备忘.md
-├── CONTEXT.md
-├── docs/
-│   ├── adr/
-│   ├── 运营工作台-上线说明.md
-│   └── 阶段*-技术开发文档.md
-├── backend/                 # FastAPI、数据模型、采集与生成服务、运营接口
-└── frontend/                # Next.js 公开站点、创作者页面与运营工作台
+├── PRD.md                  # Product requirements
+├── 决策备忘.md             # Product decisions
+├── CONTEXT.md              # Domain vocabulary
+├── docs/                   # Architecture, deployment and implementation notes
+├── backend/                # FastAPI, data models, collection, generation and operator APIs
+└── frontend/               # Next.js public site, creator pages and operations workspace
 ```
 
-## 本地开发与检查
+## Local development and checks
 
-详细环境和部署方法由技术文档维护。常用检查命令如下：
+Start with the technical documents for environment setup and deployment. On the configured local development machine, the repository also provides `一键启动微蓝日报.command`.
+
+Common checks:
 
 ```bash
-# 后端
+# Backend, from the repository root
 cd backend
 ./.venv/bin/python -m pytest -q
+```
 
-# 前端
+```bash
+# Frontend, from the repository root
 cd frontend
 npm run lint
 npx tsc --noEmit
 npm run build
 ```
 
-当前基线为后端 84 项自动测试，以及前端 lint、TypeScript 和生产构建通过。
+The existing project documentation records a baseline of 84 backend tests plus frontend lint, TypeScript and production-build checks. See the implementation documents for the context of those results.
 
-## 商业验证前的关键缺口
+## Documentation
 
-1. 接入并审查真实 X 数据获取方案。
-2. 使用真实模型和真实来源连续生成日报，完成内容质量评测。
-3. 接入真实邮件供应商、发件域名、退订和失败重试。
-4. 验证三份体验、人工付费和次月续订流程。
-5. 补齐日报打开、方案展开、发布和付费漏斗的数据采集。
-6. 完成用户协议、隐私政策和内容更正流程。
+Detailed product and engineering documents are currently in Chinese.
+
+- [Product requirements](PRD.md)
+- [Product decisions](决策备忘.md)
+- [Domain vocabulary](CONTEXT.md)
+- [ADR-0001: Shared events and recommendation-layer personalization](docs/adr/0001-shared-hot-event-pool-personalized-recommendations.md)
+- [Operations workspace deployment](docs/运营工作台-上线说明.md)
+- [Technical adaptation statement](docs/技术适配声明.md)
+
+## Next validation steps
+
+1. Connect and review a real X-data acquisition approach.
+2. Generate consecutive issues from real sources and model responses, then assess content quality.
+3. Connect an email provider, sender domain, unsubscribe handling and delivery retries.
+4. Validate the three-issue trial, manual payment and next-month renewal flow.
+5. Complete measurements for issue opens, plan expansion, publishing and payment conversion.
+6. Complete user terms, privacy policy and content-correction procedures.
