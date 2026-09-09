@@ -1,4 +1,4 @@
-# 微蓝日报
+# Blue Hour Daily（微蓝日报）
 
 [English](README.md) | **简体中文**
 
